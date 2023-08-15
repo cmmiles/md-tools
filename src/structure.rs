@@ -4,7 +4,7 @@ use std::{
     io::Write,
     rc::Rc,
     thread,
-    sync::{Arc, Mutex},
+    sync::{mpsc, Arc, Mutex},
 };
 use xdrfile::*;
 use crate::math::*;
@@ -501,32 +501,40 @@ impl Universe {
     )
         -> Result<(), &'static str>
     {
-        let outfile = match outfile {
-            Some(outfile) => &outfile.to_str().unwrap(),
-            None => "outputs/steinhardt.out",
-        };
-        let err_msg = &format!("error creating file {}", outfile);
-        let opt_pbc = self.request_pbc();
+        thread::scope(|s| -> Result<(), &'static str> {
+            let (tx, rx) = mpsc::channel();
 
-        let mut f = fs::File::create(outfile).expect(err_msg);
-        write!(f, "Steinhardt bond order parameters outputted from md-tools").expect(err_msg);
-        let f = Arc::new(Mutex::new(f));
+            s.spawn(move || {
+                let outfile = match &outfile {
+                    Some(outfile) => outfile.to_str().unwrap(),
+                    None => "outputs/steinhardt.out",
+                };
+                let err_msg = &format!("error writing to file {}", outfile);
+                let mut f = fs::File::create(outfile).expect(err_msg);
+                write!(f, "Steinhardt bond order parameters outputted from md-tools").expect(err_msg);
 
-        let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
-            .filter(|x| x.time as u32 >= *mint && x.time as u32 % *tstep == 0);
+                for (time, frame_indices, frame_output) in rx {
+                    output::steinhardt(frame_indices, frame_output, time, &mut f).expect(err_msg);
+                }
+            });
+        
+            let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
+                .filter(|x| x.time as u32 >= *mint && x.time as u32 % *tstep == 0);
 
-        for frame in traj_iter {
-            if frame.time as u32 > *maxt { break; }
-            self.load_frame(&frame);
-            // Full list of molecules being analysed -- there may be additional framewise filtering
-            let molecules: Vec<Molecule> = self.get_molecules().into_iter()
-                .filter(|mol| mol.name == resname && mol.atoms.len() > 2)
-                .collect();
-            let (frame_indices, frame_output) = analysis::steinhardt(3, &molecules, &opt_pbc)?;
-            let f_clone = f.clone();
-            let time = self.time;
-            thread::spawn(move || output::steinhardt(frame_indices, frame_output, &time, f_clone));
-        }
+            for frame in traj_iter {
+                if frame.time as u32 > *maxt { break; }
+                self.load_frame(&frame);
+                let time = self.time;
+                let opt_pbc = self.request_pbc();
+                // Full list of molecules being analysed -- there may be additional framewise filtering
+                let molecules: Vec<Molecule> = self.get_molecules().into_iter()
+                    .filter(|mol| mol.name == resname && mol.atoms.len() > 2)
+                    .collect();
+                let (frame_indices, frame_output) = analysis::steinhardt(3, &molecules, &opt_pbc)?;
+                tx.send((time, frame_indices, frame_output)).expect("Error sending write data");
+            }
+            Ok(())
+        })?;
         
         Ok(())
     }
