@@ -6,6 +6,7 @@ pub struct Config {
     pub sfile: Option<PathBuf>,
     pub tfile: Option<PathBuf>,
     pub outfile: Option<PathBuf>,
+    pub op_list: Vec<OrderParameter>,
     pub mint: u32,
     pub maxt: u32,
     pub stride: u32,
@@ -31,6 +32,7 @@ impl Config {
             sfile: None,
             tfile: None,
             outfile: None,
+            op_list: Vec::new(),
             mint: 0,
             maxt: u32::MAX,
             stride: 1,
@@ -58,6 +60,9 @@ impl Config {
                 Some(outfile) => config.outfile = Some(PathBuf::from(outfile)),
                 None => return Some(Err("missing output file declaration")),
             }
+            "--q3" => if !config.op_list.contains(&OrderParameter::Q3) { config.op_list.push(OrderParameter::Q3) },
+            "--q4" => if !config.op_list.contains(&OrderParameter::Q4) { config.op_list.push(OrderParameter::Q4) },
+            "--q6" => if !config.op_list.contains(&OrderParameter::Q6) { config.op_list.push(OrderParameter::Q6) },
             "--start" => match args.next() {
                 Some(mint) => config.mint = match mint.parse() {
                     Ok(mint) => mint,
@@ -92,4 +97,10 @@ pub enum Task {
     Convert,
     Dipole,
     Steinhardt,
+}
+
+#[derive(Debug)]
+#[derive(PartialEq)]
+pub enum OrderParameter {
+    Q3, Q4, Q6,
 }

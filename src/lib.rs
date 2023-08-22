@@ -1,7 +1,6 @@
 use structure::Universe;
 use config::Task;
 use math::Vector;
-//use std::time::Instant;
 
 pub mod structure;
 pub mod config;
@@ -31,6 +30,6 @@ pub fn run(config: config::Config) -> Result<(), &'static str> {
         Task::NumFrames => Ok(println!("{}", u.get_nframes()?)),
         Task::Convert => u.convert(&config.mint, &config.maxt, &config.stride, &config.outfile),
         Task::Dipole => u.water_dipole("SOL", Vector::z(), &config.mint, &config.maxt, &config.stride, &config.outfile),
-        Task::Steinhardt => u.steinhardt("SOL", &config.mint, &config.maxt, &config.stride, &config.outfile),
+        Task::Steinhardt => u.steinhardt("SOL", &config.op_list, &config.mint, &config.maxt, &config.stride, &config.outfile),
     }
 }

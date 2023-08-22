@@ -23,18 +23,18 @@ pub fn water_dipole(molecules: &Vec<Molecule>, ref_axis: &Vector, opt_pbc: &Opti
 }
 
 pub fn steinhardt(l: i8, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>)
-    -> Result<(Vec<u32>, Vec<f32>), &'static str>
+    -> (Vec<u32>, Vec<f32>)
 {
     let n = molecules.len();
     let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
     let mut frame_output: Vec<f32> = Vec::with_capacity(n);
 
-    let qlm_vec = steinhardt::qlm(&l, &molecules, &opt_pbc)?;
+    let qlm_vec = steinhardt::qlm(&l, &molecules, &opt_pbc);
     for molecule in molecules.iter() { frame_indices.push(molecule.id); }
     for qlm in qlm_vec.iter() {
         let sum: f32 = qlm.iter().map(|x| x.norm_sqr()).sum();
         frame_output.push(((4.0*PI)/((2*l+1) as f32) * sum).sqrt());
     }
 
-    Ok((frame_indices, frame_output))
+    (frame_indices, frame_output)
 }

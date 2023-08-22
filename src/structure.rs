@@ -7,9 +7,11 @@ use std::{
     sync::{mpsc, Arc, Mutex},
 };
 use xdrfile::*;
+use closure::closure;
 use crate::math::*;
 use crate::analysis;
 use crate::output;
+use crate::config::OrderParameter;
 
 /// An object which has coordinates, e.g. Atom, centre of mass
 pub trait Coords {
@@ -494,6 +496,7 @@ impl Universe {
     pub fn steinhardt(
         &mut self, 
         resname: &str,
+        op_list: &Vec<OrderParameter>,
         mint: &u32,
         maxt: &u32,
         tstep: &u32,
@@ -501,20 +504,30 @@ impl Universe {
     )
         -> Result<(), &'static str>
     {
-        thread::scope(|s| -> Result<(), &'static str> {
+        if op_list.len() == 0 { panic!("No Steinhardt parameters selected.") }
+        thread::scope(|analysis_scope| -> Result<(), &'static str> {
             let (tx, rx) = mpsc::channel();
 
-            s.spawn(move || {
+            analysis_scope.spawn(move || {
                 let outfile = match &outfile {
                     Some(outfile) => outfile.to_str().unwrap(),
                     None => "outputs/steinhardt.out",
                 };
-                let err_msg = &format!("error writing to file {}", outfile);
-                let mut f = fs::File::create(outfile).expect(err_msg);
-                write!(f, "Steinhardt bond order parameters outputted from md-tools").expect(err_msg);
+                let mut f_list = Vec::new();
+                for op in op_list.iter() {
+                    let mut f = match op {
+                        OrderParameter::Q3 => fs::File::create(String::from(outfile) + ".q3"),
+                        OrderParameter::Q4 => fs::File::create(String::from(outfile) + ".q4"),
+                        OrderParameter::Q6 => fs::File::create(String::from(outfile) + ".q6"),
+                    }.expect("error creating output file");
+                    write!(f, "Steinhardt {:?} bond order parameters outputted from md-tools", op)
+                        .expect("error writing to output file");
+                    f_list.push(f);
+                }
 
-                for (time, frame_indices, frame_output) in rx {
-                    output::steinhardt(frame_indices, frame_output, time, &mut f).expect(err_msg);
+                for (op_index, time, frame_indices, frame_output) in rx {
+                    output::steinhardt(frame_indices, frame_output, time, &mut f_list[op_index])
+                        .expect("error writing to output file");
                 }
             });
         
@@ -530,8 +543,20 @@ impl Universe {
                 let molecules: Vec<Molecule> = self.get_molecules().into_iter()
                     .filter(|mol| mol.name == resname && mol.atoms.len() > 2)
                     .collect();
-                let (frame_indices, frame_output) = analysis::steinhardt(3, &molecules, &opt_pbc)?;
-                tx.send((time, frame_indices, frame_output)).expect("Error sending write data");
+                
+                thread::scope(|frame_scope| {
+                    for (i, op) in op_list.iter().enumerate() {
+                        let tx_clone = tx.clone();
+                        frame_scope.spawn(closure!(ref molecules, ref opt_pbc, || {
+                            let (frame_indices, frame_output) = match op {
+                                OrderParameter::Q3 => analysis::steinhardt(3, &molecules, &opt_pbc),
+                                OrderParameter::Q4 => analysis::steinhardt(4, &molecules, &opt_pbc),
+                                OrderParameter::Q6 => analysis::steinhardt(6, &molecules, &opt_pbc),
+                            };
+                            tx_clone.send((i, time, frame_indices, frame_output)).expect("Error sending write data");
+                        }));
+                    }
+                });
             }
             Ok(())
         })?;

@@ -5,9 +5,9 @@ use crate::structure::*;
 use crate::math::*;
 
 pub fn qlm(&l: &i8, molecules: &Vec<Molecule>, &opt_pbc: &Option<[f32;3]>)
--> Result<Vec<Vec<Complex<f32>>>, &'static str>
+-> Vec<Vec<Complex<f32>>>
 {
-    let nt = 4;
+    let nt = 1;
     let n = molecules.len();
     let mut results: Vec<Vec<Complex<f32>>> = Vec::with_capacity(n);
 
@@ -24,7 +24,7 @@ pub fn qlm(&l: &i8, molecules: &Vec<Molecule>, &opt_pbc: &Option<[f32;3]>)
         }
     });
 
-    Ok(results)
+    results
 }
 
 fn thread_qlm(&l: &i8, mol_slice: &[Molecule], molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>)
