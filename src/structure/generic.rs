@@ -20,11 +20,11 @@ pub trait Coords {
             while dz < -0.5 * box_dimensions[2] { dz += box_dimensions[2]; }
             while dz > 0.5 * box_dimensions[2] { dz -= box_dimensions[2]; }
         }
-        Vector::new(dx, dy, dz)
+        Vector::new(dx as f64, dy as f64, dz as f64)
     }
 
     /// Calculates the squared distance to another Coords
-    fn dsq(&self, other: &dyn Coords, opt_pbc: &Option<[f32; 3]>) -> f32 {
+    fn dsq(&self, other: &dyn Coords, opt_pbc: &Option<[f32; 3]>) -> f64 {
         self.vector_to_coord(other, opt_pbc).dsq()
     }
 }

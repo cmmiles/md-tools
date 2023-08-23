@@ -5,13 +5,13 @@ use std::{
 use xdrfile::*;
 use crate::math::*;
 
-pub mod generic;
+mod generic;
 pub use generic::*;
 
-pub mod atom;
+mod atom;
 pub use atom::*;
 
-pub mod universe;
+mod universe;
 pub use universe::*;
 
 /// Container for Trajectory Iterators. Currently only XTC/TRR supported but can be expanded in the future.

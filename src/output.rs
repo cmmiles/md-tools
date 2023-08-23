@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-pub fn water_dipole (frame_indices: Vec<u32>, frame_output: Vec<f32>, time: &f32, f: Arc<Mutex<fs::File>>)
+pub fn water_dipole (frame_indices: Vec<u32>, frame_output: Vec<f64>, time: &f32, f: Arc<Mutex<fs::File>>)
     -> Result<(), &'static str>
 {
     let mut frame_string = String::with_capacity(26 + 22*frame_indices.len());
@@ -19,7 +19,7 @@ pub fn water_dipole (frame_indices: Vec<u32>, frame_output: Vec<f32>, time: &f32
     }
 }
 
-pub fn steinhardt (frame_indices: Vec<u32>, frame_output: Vec<f32>, time: f32, f: &mut fs::File)
+pub fn steinhardt (frame_indices: Vec<u32>, frame_output: Vec<f64>, time: f32, f: &mut fs::File)
     -> Result<(), &'static str>
 {
     let mut frame_string = String::with_capacity(26 + 18*frame_indices.len());

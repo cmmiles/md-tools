@@ -90,7 +90,7 @@ impl Atom {
     }
 
     /// Calculates the coordination shell of the Atom
-    pub fn coord_shell<'a>(&self, universe: &'a Universe, cutoff: f32, atom_name: &'a str, opt_pbc: &Option<[f32; 3]>) -> Vec<&'a Atom> {
+    pub fn coord_shell<'a>(&self, universe: &'a Universe, cutoff: f64, atom_name: &'a str, opt_pbc: &Option<[f32; 3]>) -> Vec<&'a Atom> {
         let u_iter = universe.atoms.iter()
             .filter(|&x| &x.name[..] == atom_name)
             .filter(|&x| 0.0 < self.dsq(x, opt_pbc) && self.dsq(x, opt_pbc) <= cutoff*cutoff);
@@ -111,7 +111,7 @@ pub struct Molecule<'a> {
 
 impl<'a> Molecule<'a> {
     /// Calculates the coordination shell of the Molecule, using the first atom as the centre
-    pub fn coord_shell<'b>(&'b self, molecules: &'b Vec<Molecule>, cutoff: f32, opt_pbc: &Option<[f32; 3]>)
+    pub fn coord_shell<'b>(&'b self, molecules: &'b Vec<Molecule>, cutoff: f64, opt_pbc: &Option<[f32; 3]>)
         -> Vec<&'b Molecule>
     {
         molecules.iter()

@@ -4,21 +4,21 @@ use num::complex::Complex;
 mod consts;
 
 /// Calculates the angle between two Vectors in radians. Use `x.to_degrees()` to get degrees.
-pub fn angle_between_vectors(u: &Vector, v: &Vector) -> f32 {
+pub fn angle_between_vectors(u: &Vector, v: &Vector) -> f64 {
     (dot_product(u, v) / (u.abs() * v.abs())).acos()
 }
 
-pub fn dot_product(u: &Vector, v: &Vector) -> f32 {
+pub fn dot_product(u: &Vector, v: &Vector) -> f64 {
     u.x*v.x + u.y*v.y + u.z*v.z
 }
 
 #[derive(Debug)]
 pub struct Vector {
-    pub x: f32,
-    pub y: f32,
-    pub z: f32,
-    theta: Option<f32>,
-    phi: Option<f32>,
+    pub x: f64,
+    pub y: f64,
+    pub z: f64,
+    theta: Option<f64>,
+    phi: Option<f64>,
 }
 
 impl fmt::Display for Vector {
@@ -28,7 +28,7 @@ impl fmt::Display for Vector {
 }
 
 impl Vector {
-    pub fn new(x: f32, y: f32, z: f32) -> Self {
+    pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self { x, y, z, theta: None, phi: None }
     }
 
@@ -36,13 +36,13 @@ impl Vector {
     pub fn y() -> Self { Self { x: 0.0, y: 1.0, z: 0.0, theta: Some(0.0), phi: Some(0.0) } }
     pub fn z() -> Self { Self { x: 0.0, y: 0.0, z: 1.0, theta: Some(0.0), phi: Some(0.0) } }
 
-    pub fn dsq(&self) -> f32 {
+    pub fn dsq(&self) -> f64 {
         self.x*self.x + self.y*self.y + self.z*self.z
     }
 
-    pub fn abs(&self) -> f32 { self.dsq().sqrt() }
+    pub fn abs(&self) -> f64 { self.dsq().sqrt() }
 
-    pub fn theta(&mut self) -> f32 {
+    pub fn theta(&mut self) -> f64 {
         match self.theta {
             Some(theta) => theta,
             None => {
@@ -53,7 +53,7 @@ impl Vector {
         }
     }
 
-    pub fn phi(&mut self) -> f32 {
+    pub fn phi(&mut self) -> f64 {
         match self.phi {
             Some(phi) => phi,
             None => {
@@ -69,7 +69,7 @@ impl Vector {
     }
 }
 
-pub fn spherical_harmonic(l: &i8, m: &i8, r: &mut Vector) -> Result<Complex<f32>, &'static str> {
+pub fn spherical_harmonic(l: &i8, m: &i8, r: &mut Vector) -> Result<Complex<f64>, &'static str> {
     let theta = r.theta();
     let phi = r.phi();
     let sh_r = match (l, m) {
@@ -107,5 +107,5 @@ pub fn spherical_harmonic(l: &i8, m: &i8, r: &mut Vector) -> Result<Complex<f32>
 
         _ => return Err("non-implemented spherical harmonic required"),
     };
-    Ok(Complex::from_polar(sh_r, (*m as f32)*phi))
+    Ok(Complex::from_polar(sh_r, (*m as f64)*phi))
 }
