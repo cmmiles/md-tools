@@ -1,5 +1,6 @@
 # md-tools
 A collection of Rust-based analysis tools for molecular simulations in .xtc and .trr file formats.
+Full documentation can be found at [https://cmmiles.github.io/md-tools/](https://cmmiles.github.io/md-tools/).
 
 ## How to run:
 `md-tools` can be run from the command line as follows:
