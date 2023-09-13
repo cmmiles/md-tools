@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"md_tools":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.70.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"md_tools/math/struct.Vector.html\" title=\"struct md_tools::math::Vector\">Vector</a>"],["impl&lt;'a&gt; <a class=\"trait\" href=\"https://doc.rust-lang.org/1.70.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"md_tools/structure/struct.Molecule.html\" title=\"struct md_tools::structure::Molecule\">Molecule</a>&lt;'a&gt;"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

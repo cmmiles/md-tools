@@ -145,7 +145,7 @@ pub fn local_steinhardt_2(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pb
 
 /// Computes the number of hydrogen bonds for a list of water molecules
 /// (first atom must be oxygen, second and third atoms must be hydrogen)
-/// given O--O distance cutoff `r_cut` \[nm\] and O--H--O angle cutoff `a_cut` [degrees].
+/// given O--O distance cutoff `r_cut` \[nm\] and O--H--O angle cutoff `a_cut` \[degrees\].
 pub fn get_n_hbonds<'a>(
     molecules: &Vec<Molecule<'a>>,
     r_cut: f64,

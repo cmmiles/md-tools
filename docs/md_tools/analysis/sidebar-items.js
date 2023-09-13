@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["get_n_hbonds","local_steinhardt","local_steinhardt_2","steinhardt","water_dipole"]};

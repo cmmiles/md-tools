@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["angle_between_vectors","dot_product","spherical_harmonic"],"struct":["AdjacencyMatrix","Point","Vector"],"trait":["Coords"]};

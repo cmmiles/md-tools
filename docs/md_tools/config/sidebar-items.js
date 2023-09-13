@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["OrderParameter","Task"],"struct":["Config"]};
