@@ -1,12 +1,11 @@
+//! Module containing tangible structural objects.
+
 use std::{
     fmt,
     rc::Rc,
 };
 use xdrfile::*;
 use crate::math::*;
-
-mod generic;
-pub use generic::*;
 
 mod atom;
 pub use atom::*;

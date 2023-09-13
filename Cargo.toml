@@ -8,4 +8,5 @@ edition = "2021"
 [dependencies]
 closure = "0.3.0"
 num = "0.4.1"
+ordinal = "0.3.2"
 xdrfile = "0.3.0"

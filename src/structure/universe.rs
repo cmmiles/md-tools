@@ -88,7 +88,7 @@ impl Universe {
         ( atoms, box_dimensions )
     }
 
-    /// Reads the trajectory if it exists (xtc and trr files supported).
+    /// Read the trajectory if it exists (xtc and trr files supported).
     fn read_traj(&self) -> Result<MultiTrajIter, &'static str> {
         match &self.traj {
             Some(tfile) => match (&tfile).extension().expect("trajectory file must have an extension").to_str().unwrap() {
@@ -100,7 +100,7 @@ impl Universe {
         }
     }
 
-    /// Reads an xtc file
+    /// Read an xtc file.
     fn read_xtc(xtc_file: &Path, natoms: usize) -> Result<MultiTrajIter, &'static str> {
         let mut trj = match XTCTrajectory::open_read(xtc_file) {
             Ok(trj) => trj,
@@ -113,7 +113,7 @@ impl Universe {
         }
     }
 
-    /// Reads a trr file
+    /// Read a trr file.
     fn read_trr(trr_file: &Path, natoms: usize) -> Result<MultiTrajIter, &'static str> {
         let mut trj = match TRRTrajectory::open_read(trr_file) {
             Ok(trj) => trj,
@@ -126,7 +126,7 @@ impl Universe {
         }
     }
 
-    /// Writes the current frame to a gro file.
+    /// Write the current frame to a gro file.
     pub fn write_gro(&self, gro_file: &str) {
         let err_msg = &format!("error writing to file {}", gro_file);
         let mut f = fs::File::create(gro_file).expect(err_msg);
@@ -139,7 +139,7 @@ impl Universe {
         write!(f, "{:10.5}{:10.5}{:10.5}", box_dimensions[0], box_dimensions[1], box_dimensions[2]).expect(err_msg);
     }
 
-    /// Returns a vector of molecules, assumes molecules are grouped in order in the structure file.
+    /// Return a vector of molecules, assumes molecules are grouped in order in the structure file.
     pub fn get_molecules(&self) -> Vec<Molecule> {
         let mut molecules: Vec<Molecule> = Vec::new();
         for atom in &self.atoms {
@@ -152,7 +152,7 @@ impl Universe {
         molecules
     }
 
-    /// Returns the number of frames in the trajectory.
+    /// Return the number of frames in the trajectory.
     pub fn get_nframes(&self) -> Result<usize, &'static str> {
         let traj_iter = self.read_traj()?;
         Ok(traj_iter.count())
@@ -178,7 +178,7 @@ impl Universe {
 
         for frame in traj_iter {
             self.load_frame(&frame);
-            self.write_gro(&format!("outputs/{}_{}.gro", outfile_str, frame.time));
+            self.write_gro(&format!("{}_{}.gro", outfile_str, frame.time));
         }
         Ok(())
     }
@@ -188,7 +188,7 @@ impl Universe {
         let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
             .filter(|x| x.time as u32 >= *mint && x.time as u32 <= *maxt && x.time as u32 % *tstep == 0);
         
-        let mut trj = match XTCTrajectory::open_write(format!("outputs/{}.xtc", outfile_str)) {
+        let mut trj = match XTCTrajectory::open_write(format!("{}.xtc", outfile_str)) {
             Ok(trj) => trj,
             Err(_) => return Err("error opening output file"),
         };
@@ -204,7 +204,7 @@ impl Universe {
         let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
             .filter(|x| x.time as u32 >= *mint && x.time as u32 <= *maxt && x.time as u32 % *tstep == 0);
         
-        let mut trj = match TRRTrajectory::open_write(format!("outputs/{}.trr", outfile_str)) {
+        let mut trj = match TRRTrajectory::open_write(format!("{}.trr", outfile_str)) {
             Ok(trj) => trj,
             Err(_) => return Err("error opening output file"),
         };
@@ -215,7 +215,7 @@ impl Universe {
         Ok(())
     }
 
-    /// Mutates the Universe to the coordinates in the given Frame.
+    /// Mutate the Universe to the coordinates in the given Frame.
     fn load_frame(&mut self, frame: &Frame) {
         let mut frame_iter = frame.coords.iter();
         self.time = frame.time;
@@ -229,6 +229,7 @@ impl Universe {
         ];
     }
 
+    /// Returns None if pbcs are off, returns box dimensions if pbcs are on.
     fn request_pbc(&self) -> Option<[f32;3]> {
         match self.pbc {
             true => Some(self.box_dimensions.clone()),
@@ -236,12 +237,8 @@ impl Universe {
         }
     }
 
-    pub fn first_coord_shell<'a>(&'a self, id: usize, atom_name: &'a str) -> Vec<&'a Atom> {
-        let opt_pbc = self.request_pbc();
-        self.atoms[id].coord_shell(self, 0.3, atom_name, &opt_pbc)
-    }
-
-    /// Calculates the water dipoles for the frames specified in the Config
+    /// Calculate the water dipoles for the frames specified in the Config.
+    /// N.B. to be combined with `steinhardt()`.
     pub fn water_dipole(
         &mut self,
         resname: &str,
@@ -255,7 +252,7 @@ impl Universe {
     {
         let outfile = match outfile {
             Some(outfile) => &outfile.to_str().unwrap(),
-            None => "outputs/dipole.out",
+            None => "outputs/md-tools.out.theta",
         };
         let err_msg = &format!("error creating file {}", outfile);
         let opt_pbc = self.request_pbc();
@@ -283,10 +280,13 @@ impl Universe {
         Ok(())
     }
 
+    /// Calculate Steinhardt order parameters for the frames specified in the Config.
+    /// N.B. to be combined with `water_dipole()`.
     pub fn steinhardt(
         &mut self, 
         resname: &str,
         op_list: &Vec<OrderParameter>,
+        cutoff: &f64,
         mint: &u32,
         maxt: &u32,
         tstep: &u32,
@@ -301,7 +301,7 @@ impl Universe {
             analysis_scope.spawn(move || {
                 let outfile = match &outfile {
                     Some(outfile) => outfile.to_str().unwrap(),
-                    None => "outputs/steinhardt.out",
+                    None => "outputs/md-tools.out",
                 };
                 let mut f_list = Vec::new();
                 for op in op_list.iter() {
@@ -309,8 +309,9 @@ impl Universe {
                         OrderParameter::Q3 => fs::File::create(String::from(outfile) + ".q3"),
                         OrderParameter::Q4 => fs::File::create(String::from(outfile) + ".q4"),
                         OrderParameter::Q6 => fs::File::create(String::from(outfile) + ".q6"),
+                        OrderParameter::Theta => fs::File::create(String::from(outfile) + ".theta"),
                     }.expect("error creating output file");
-                    write!(f, "Steinhardt {:?} bond order parameters outputted from md-tools", op)
+                    write!(f, "{}", op.title_line())
                         .expect("error writing to output file");
                     f_list.push(f);
                 }
@@ -339,9 +340,10 @@ impl Universe {
                         let tx_clone = tx.clone();
                         frame_scope.spawn(closure!(ref molecules, ref opt_pbc, || {
                             let (frame_indices, frame_output) = match op {
-                                OrderParameter::Q3 => analysis::steinhardt(3, &molecules, &opt_pbc),
-                                OrderParameter::Q4 => analysis::steinhardt(4, &molecules, &opt_pbc),
-                                OrderParameter::Q6 => analysis::steinhardt(6, &molecules, &opt_pbc),
+                                OrderParameter::Q3 => analysis::steinhardt(3, cutoff, &molecules, &opt_pbc, None),
+                                OrderParameter::Q4 => analysis::steinhardt(4, cutoff, &molecules, &opt_pbc, None),
+                                OrderParameter::Q6 => analysis::steinhardt(6, cutoff, &molecules, &opt_pbc, None),
+                                OrderParameter::Theta => panic!("Theta not yet incorporated"),
                             };
                             tx_clone.send((i, time, frame_indices, frame_output)).expect("Error sending write data");
                         }));
@@ -354,6 +356,112 @@ impl Universe {
         Ok(())
     }
 
+    /// Largest icy cluster analysis protocol (work in progress, currently very hard-coded).
+    pub fn q6_clustering(
+        &mut self, 
+        resname: &str,
+        cutoff: &f64,
+        mint: &u32,
+        maxt: &u32,
+        tstep: &u32,
+        n_clusters: &usize,
+        outfile: &Option<PathBuf>,
+    )
+        -> Result<(), &'static str>
+    {
+        const Q6_CUT: f64 = 0.5; // q6 cutoff for including molecules in clustering
+
+        let outfile = match outfile {
+            Some(outfile) => &outfile.to_str().unwrap(),
+            None => "outputs/md-tools.out.cls",
+        };
+
+        let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
+            .filter(|x| x.time as u32 >= *mint && x.time as u32 % *tstep == 0);
+        
+        let mut f = fs::File::create(outfile).expect("error creating  output file");
+        write!(f, "Q6 clusters outputted from md-tools").expect("error writing to output file");
+
+        for frame in traj_iter {
+            if frame.time as u32 > *maxt { break; }
+            self.load_frame(&frame);
+            let time = self.time;
+            let opt_pbc = self.request_pbc();
+            // Full list of molecules being analysed -- there may be additional framewise filtering
+            let molecules: Vec<Molecule> = self.get_molecules().into_iter()
+                .filter(|mol| mol.name == resname && mol.atoms.len() > 2)
+                .collect();
+
+            // Compute number of hydrogen bonds, generate list of indices of molecules with 4
+            let n_hbonds = analysis::get_n_hbonds(&molecules, 0.32, 150.0, &opt_pbc);
+            let ndx: Vec<usize> = n_hbonds.iter().enumerate()
+                .filter_map(|(i, n)| match n {
+                    4 => Some(i),
+                    _ => None,
+                }).collect();
+
+            // Create list of molecules not included in opt_ndx
+            let mut extra_molecules: Vec<Molecule> = n_hbonds.iter().enumerate()
+                .filter_map(|(i, n)| match n {
+                    4 => None,
+                    _ => Some(molecules[i].clone()),
+                }).collect();
+
+            // Compute Steinhardt local q6 parameter
+            let (_, frame_output) = analysis::local_steinhardt_2(6, cutoff, &molecules, &opt_pbc, Some(&ndx));
+
+            // Generate list of molecules to those with q6 >= Q6_CUT and four neighbours and add those with q6 < Q6_CUT
+            // to extra_molecules
+            let mut filtered_molecules: Vec<Molecule> = Vec::with_capacity(frame_output.len());
+            extra_molecules.reserve(frame_output.len());
+            for (i, ndx) in ndx.into_iter().enumerate() {
+                if frame_output[i] >= Q6_CUT { filtered_molecules.push(molecules[ndx].clone()); }
+                else { extra_molecules.push(molecules[ndx].clone()); }
+            }
+
+            let clusters: Vec<Vec<u32>> = if filtered_molecules.len() > 0 {
+                // Build the adjacency matrix for filtered molecules, run DFS to get the clusters and truncate to n+5 largest
+                // Includes a few extra clusters because surface molecules may affect the order of sizes
+                let adj_matrix = AdjacencyMatrix::build_from_coords(&filtered_molecules, cutoff, &opt_pbc);
+                let mut clusters = adj_matrix.cluster();
+                clusters.truncate(*n_clusters+5);
+
+                // Replace indices (from within filtered_molecules) with corresponding Molecule structs
+                let mut clusters: Vec<Vec<Molecule>> = clusters.into_iter().map( |cls|
+                    cls.into_iter().map(|i| filtered_molecules[i].clone()).collect()
+                ).collect();
+
+                // Add surface molecules to clusters
+                for cluster in clusters.iter_mut() {
+                    let mut surface_mols: Vec<Molecule> = Vec::new();
+                    for extra_mol in extra_molecules.iter() {
+                        for cluster_mol in cluster.iter() {
+                            if cluster_mol.dsq(extra_mol, &opt_pbc) <= cutoff*cutoff {
+                                surface_mols.push(extra_mol.clone());
+                                break;
+                            }
+                        }
+                    cluster.append(&mut surface_mols);
+                    }
+                }
+
+                // Reorder (in case surface atoms changed the order of sizes) and truncate to only n largest
+                clusters.sort_unstable_by(|a, b| b.len().cmp(&a.len()));
+                clusters.truncate(*n_clusters);
+
+                // Replace molecules with resids for output
+                clusters.into_iter().map(|cls| cls.into_iter().map(|mol| mol.id).collect()).collect()
+            } else {
+                (0..*n_clusters).into_iter().map(|_| vec![]).collect()
+            };
+
+            output::q6_clustering(clusters, time, &mut f)?;
+        }
+
+        Ok(())
+    }
+
+    /// Testing function to compare two Universe snapshots.
     #[cfg(test)]
     pub fn compare_gro(&self, atoms: Vec<Atom>, box_dimensions: [f32; 3]) -> bool {
         self.atoms == atoms && self.box_dimensions == box_dimensions

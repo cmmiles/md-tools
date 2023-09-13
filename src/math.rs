@@ -1,74 +1,36 @@
-use std::fmt;
+//! Module to contain mathematical functions and structures.
+
+use std::{
+    fmt,
+    f64::consts::FRAC_PI_2,
+    ops::{Add, Sub, Mul, Div},
+};
 use num::complex::Complex;
 
 mod consts;
 
-/// Calculates the angle between two Vectors in radians. Use `x.to_degrees()` to get degrees.
+mod coords;
+pub use coords::*;
+
+mod vector;
+pub use vector::*;
+
+mod adjacency_matrix;
+pub use adjacency_matrix::*;
+
+/// Calculates the angle between two [`Vector`](crate::math::Vector)s in radians.
+/// Use [`f64::to_degrees()`](f64::to_degrees) to get degrees.
 pub fn angle_between_vectors(u: &Vector, v: &Vector) -> f64 {
-    (dot_product(u, v) / (u.abs() * v.abs())).acos()
+    (dot_product(u, v) / (u.radius() * v.radius())).acos()
 }
 
+/// Calculates the dot product of two [`Vector`](crate::math::Vector)s.
 pub fn dot_product(u: &Vector, v: &Vector) -> f64 {
     u.x*v.x + u.y*v.y + u.z*v.z
 }
 
-#[derive(Debug)]
-pub struct Vector {
-    pub x: f64,
-    pub y: f64,
-    pub z: f64,
-    theta: Option<f64>,
-    phi: Option<f64>,
-}
-
-impl fmt::Display for Vector {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Vector ({}, {}, {})", self.x, self.y, self.z)
-    }
-}
-
-impl Vector {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
-        Self { x, y, z, theta: None, phi: None }
-    }
-
-    pub fn x() -> Self { Self { x: 1.0, y: 0.0, z: 0.0, theta: Some(0.0), phi: Some(0.0) } }
-    pub fn y() -> Self { Self { x: 0.0, y: 1.0, z: 0.0, theta: Some(0.0), phi: Some(0.0) } }
-    pub fn z() -> Self { Self { x: 0.0, y: 0.0, z: 1.0, theta: Some(0.0), phi: Some(0.0) } }
-
-    pub fn dsq(&self) -> f64 {
-        self.x*self.x + self.y*self.y + self.z*self.z
-    }
-
-    pub fn abs(&self) -> f64 { self.dsq().sqrt() }
-
-    pub fn theta(&mut self) -> f64 {
-        match self.theta {
-            Some(theta) => theta,
-            None => {
-                let theta = angle_between_vectors(self, &Vector::z());
-                self.theta = Some(theta);
-                theta
-            }
-        }
-    }
-
-    pub fn phi(&mut self) -> f64 {
-        match self.phi {
-            Some(phi) => phi,
-            None => {
-                let proj_vector = Self { x: self.x, y: self.y, z: 0.0, theta: None, phi: None };
-                let phi = match self.y >= 0.0 {
-                    true  =>   angle_between_vectors(&proj_vector, &Vector::x()),
-                    false => - angle_between_vectors(&proj_vector, &Vector::x()),
-                };
-                self.phi = Some(phi);
-                phi
-            }
-        }
-    }
-}
-
+/// Computes the spherical harmonic Y_l^m for a given [`Vector`](crate::math::Vector).
+/// Only 3rd, 4th and 6th order implemented at present.
 pub fn spherical_harmonic(l: &i8, m: &i8, r: &mut Vector) -> Result<Complex<f64>, &'static str> {
     let theta = r.theta();
     let phi = r.phi();

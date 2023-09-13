@@ -98,7 +98,7 @@ impl Atom {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 /// Contains references to atoms for a single molcule, along with molecule details
 pub struct Molecule<'a> {
     /// Molecule index
@@ -109,9 +109,19 @@ pub struct Molecule<'a> {
     pub atoms: Vec<&'a Atom>,
 }
 
+impl<'a> Coords for Molecule<'a> {
+    fn coords(&self) -> &[f32; 3] { &self.atoms[0].coords }
+}
+
+impl<'a> PartialEq for Molecule<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        self.atoms[0] == other.atoms[0]
+    }
+}
+
 impl<'a> Molecule<'a> {
     /// Calculates the coordination shell of the Molecule, using the first atom as the centre
-    pub fn coord_shell<'b>(&'b self, molecules: &'b Vec<Molecule>, cutoff: f64, opt_pbc: &Option<[f32; 3]>)
+    pub fn coord_shell<'b>(&'b self, molecules: &'b Vec<Molecule>, cutoff: &f64, opt_pbc: &Option<[f32; 3]>)
         -> Vec<&'b Molecule>
     {
         molecules.iter()

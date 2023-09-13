@@ -1,10 +1,11 @@
 use super::*;
 
-/// An object which has coordinates, e.g. Atom, centre of mass
+/// An object which has coordinates, e.g. Atom, centre of mass.
 pub trait Coords {
+    /// Gives the coordinates of the object.
     fn coords(&self) -> &[f32; 3];
 
-    /// Calculates the vector to another Coords
+    /// Calculates the vector to another Coords.
     fn vector_to_coord(&self, other: &dyn Coords, opt_pbc: &Option<[f32; 3]>) -> Vector {
         let self_coords = self.coords();
         let other_coords = other.coords();
@@ -23,13 +24,14 @@ pub trait Coords {
         Vector::new(dx as f64, dy as f64, dz as f64)
     }
 
-    /// Calculates the squared distance to another Coords
+    /// Calculates the squared distance to another Coords.
     fn dsq(&self, other: &dyn Coords, opt_pbc: &Option<[f32; 3]>) -> f64 {
-        self.vector_to_coord(other, opt_pbc).dsq()
+        self.vector_to_coord(other, opt_pbc).rsq()
     }
 }
 
-/// Generic Point struct for positional data alone, e.g. centre of mass
+/// Generic Point struct for positional data alone, e.g. centre of mass.
+/// This is a minimal structure to implement the Coords trait.
 pub struct Point([f32; 3]);
 
 impl Coords for Point {
@@ -37,7 +39,7 @@ impl Coords for Point {
 }
 
 impl Point {
-    /// Finds the centre of a set of coordinates !not taking mass into account!
+    /// Finds the centre of a set of coordinates *not taking mass into account!*
     /// There is potential for the centre to be incorrect if the points are spaced across more than 50% of the simulation box
     /// and periodic boundary conditions are in use.
     pub fn centre(points: Vec<&dyn Coords>, opt_pbc: &Option<[f32; 3]>) -> Point {
