@@ -34,7 +34,7 @@
 //!
 //! [^note2]: Depending on the analysis, this may be extended, e.g. `"md-tools.out" -> "md-tools.out.q6"`.
 //! 
-//! [^note3]: Same unit as in trajectory file -- likely picoseconds.
+//! [^note3]: Same unit as in trajectory file --- likely picoseconds.
 
 use structure::Universe;
 use config::Task;

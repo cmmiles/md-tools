@@ -24,7 +24,10 @@ pub fn water_dipole(molecules: &Vec<Molecule>, ref_axis: &Vector, opt_pbc: &Opti
     Ok((frame_indices, frame_output))
 }
 
-/// Calculates the Steinhardt order parameters for a given universe at its current Frame.
+/// Calculates the [Steinhardt bond order parameters](https://doi.org/10.1103/PhysRevB.28.784)[^cite]
+/// for a given universe at its current Frame.
+///
+/// [^cite]: [P. J. Steinhardt, D. R. Nelson and M. Ronchetti, *Phys. Rev. B*, 1983, **28**, 784--805](https://doi.org/10.1103/PhysRevB.28.784).
 pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
 -> (Vec<u32>, Vec<f64>) {
     let n = molecules.len();
@@ -51,7 +54,9 @@ pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Opti
 }
 
 /// Calculates local version of Steinhardt Q6 parameter,
-/// as defined by [Lechner and Dellago](https://doi.org/10.1063/1.2977970).
+/// as defined by [Lechner and Dellago](https://doi.org/10.1063/1.2977970).[^cite]
+///
+/// [^cite]: [W. Lechner and C. Dellago, *J. Chem. Phys.*, 2008, **129**, 114707.](https://doi.org/10.1063/1.2977970)
 pub fn local_steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
 -> (Vec<u32>, Vec<f64>) {
     let n = molecules.len();
@@ -80,7 +85,9 @@ pub fn local_steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc:
 }
 
 /// Calculates local version of Steinhardt Q6 parameter,
-/// as defined by [Li et al.](https://doi.org/10.1039/C1CP22167A).
+/// as defined by [Li et al.](https://doi.org/10.1039/C1CP22167A).[^cite]
+///
+/// [^cite]: [T. Li, D. Donadio, G. Russo and G. Galli, *Phys. Chem. Chem. Phys.*, 2011, **13**, 19807--19813.](https://doi.org/10.1063/1.2977970)
 pub fn local_steinhardt_2(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
 -> (Vec<u32>, Vec<f64>) {
     let n = molecules.len();
