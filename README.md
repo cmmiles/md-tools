@@ -5,7 +5,7 @@ Full documentation can be found at [https://cmmiles.github.io/md-tools/](https:/
 ## How to run:
 `md-tools` can be run from the command line as follows:
 ```
-md-tools steinhardt --q6 -s md-gro -t traj.xtc -start 0 --end 1000
+md-tools steinhardt --q6 -s md-gro -t traj.xtc -o md-tools.out -start 0 --end 1000
 ```
 where `md-tools` is the executable. The first argument after `md-tools` is the analysis to be run, options:
 * `nframes` for outputting the total number of frames in the trajectory,[^note1]
