@@ -70,6 +70,37 @@
 <a href="#70" id="70">70</a>
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
+<a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
+<a href="#75" id="75">75</a>
+<a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
+<a href="#85" id="85">85</a>
+<a href="#86" id="86">86</a>
+<a href="#87" id="87">87</a>
+<a href="#88" id="88">88</a>
+<a href="#89" id="89">89</a>
+<a href="#90" id="90">90</a>
+<a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
+<a href="#94" id="94">94</a>
+<a href="#95" id="95">95</a>
+<a href="#96" id="96">96</a>
+<a href="#97" id="97">97</a>
+<a href="#98" id="98">98</a>
+<a href="#99" id="99">99</a>
+<a href="#100" id="100">100</a>
+<a href="#101" id="101">101</a>
+<a href="#102" id="102">102</a>
+<a href="#103" id="103">103</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module to handle outputting analysis results to files.
 
 </span><span class="kw">use </span>std::{
@@ -80,15 +111,46 @@
 
 <span class="kw">use </span>ordinal::Ordinal;
 
+<span class="doccomment">/// Writes output to CSV file.
+</span><span class="kw">pub fn </span>csv(frame_indices: Vec&lt;u32&gt;, frame_output: Vec&lt;f64&gt;, csv_indices: <span class="kw-2">&amp;</span>Vec&lt;u32&gt;, f: <span class="kw-2">&amp;mut </span>fs::File)
+    -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;
+{
+    <span class="kw">let </span><span class="kw-2">mut </span>csv_line = String::with_capacity(<span class="number">9</span><span class="kw-2">*</span>csv_indices.len());
+    <span class="comment">// frame_indices are just what&#39;s computed for the frame, csv_indices are all molecules which may be included
+    // i is current frame_indices index
+    </span><span class="kw">let </span><span class="kw-2">mut </span>i = <span class="kw">if </span>csv_indices[<span class="number">0</span>] == frame_indices[<span class="number">0</span>] {
+        <span class="kw">if </span>frame_output[<span class="number">0</span>].is_nan() { csv_line +=<span class="string">&quot;\n&quot;</span>; }
+        <span class="kw">else </span>{ csv_line += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\n{:8.6}&quot;</span>, frame_output[<span class="number">0</span>]); }
+        <span class="number">1
+    </span>} <span class="kw">else </span>{
+        csv_line += <span class="string">&quot;\n&quot;</span>;
+        <span class="number">0
+    </span>};
+    <span class="kw">for </span>mol_id <span class="kw">in </span>csv_indices[<span class="number">1</span>..].iter() {
+        <span class="kw">if </span><span class="kw-2">*</span>mol_id == frame_indices[i] {
+            <span class="kw">if </span>frame_output[i].is_nan() { csv_line += <span class="string">&quot;,&quot;</span>; }
+            <span class="kw">else </span>{ csv_line += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;,{:8.6}&quot;</span>, frame_output[i]); }
+            i += <span class="number">1
+        </span>} <span class="kw">else </span>{
+            csv_line += <span class="string">&quot;,&quot;</span>;
+        }
+    }
+
+    <span class="kw">match </span><span class="macro">write!</span>(f, <span class="string">&quot;{csv_line}&quot;</span>) {
+        <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
+        <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;error writing to CSV output file&quot;</span>),
+    }
+}
+
 <span class="doccomment">/// Writes water dipole output to file. N.B. to be combined with `steinhardt()`.
 </span><span class="kw">pub fn </span>water_dipole(frame_indices: Vec&lt;u32&gt;, frame_output: Vec&lt;f64&gt;, time: <span class="kw-2">&amp;</span>f32, f: Arc&lt;Mutex&lt;fs::File&gt;&gt;)
     -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;
 {
     <span class="kw">let </span><span class="kw-2">mut </span>frame_string = String::with_capacity(<span class="number">26 </span>+ <span class="number">22</span><span class="kw-2">*</span>frame_indices.len());
-    frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\nt={:&lt;10}&quot;</span>, time));
-    <span class="kw">for </span>id <span class="kw">in </span>frame_indices.iter() { frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {id:&gt;10}&quot;</span>)); };
-    frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\n            &quot;</span>));
-    <span class="kw">for </span>theta <span class="kw">in </span>frame_output.iter() { frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {theta:10.4}&quot;</span>)); };
+    frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\nt={:&lt;10}&quot;</span>, time);
+    <span class="kw">for </span>id <span class="kw">in </span>frame_indices.iter() { frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {id:&gt;10}&quot;</span>); };
+    frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\n            &quot;</span>);
+    <span class="kw">for </span>theta <span class="kw">in </span>frame_output.iter() { frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {theta:10.4}&quot;</span>); };
 
     <span class="kw">match </span><span class="macro">write!</span>(f.lock().unwrap(), <span class="string">&quot;{frame_string}&quot;</span>) {
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
@@ -101,10 +163,10 @@
     -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;
 {
     <span class="kw">let </span><span class="kw-2">mut </span>frame_string = String::with_capacity(<span class="number">26 </span>+ <span class="number">18</span><span class="kw-2">*</span>frame_indices.len());
-    frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\nt={:&lt;10}&quot;</span>, time));
-    <span class="kw">for </span>id <span class="kw">in </span>frame_indices.iter() { frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {id:&gt;8}&quot;</span>)); };
-    frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\n            &quot;</span>));
-    <span class="kw">for </span>theta <span class="kw">in </span>frame_output.iter() { frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {theta:8.6}&quot;</span>)); };
+    frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\nt={:&lt;10}&quot;</span>, time);
+    <span class="kw">for </span>id <span class="kw">in </span>frame_indices.iter() { frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {id:&gt;8}&quot;</span>); };
+    frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\n            &quot;</span>);
+    <span class="kw">for </span>theta <span class="kw">in </span>frame_output.iter() { frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {theta:8.6}&quot;</span>); };
 
     <span class="kw">match </span><span class="macro">write!</span>(f, <span class="string">&quot;{frame_string}&quot;</span>) {
         <span class="prelude-val">Ok</span>(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(()),
@@ -123,17 +185,17 @@
     
     <span class="kw">let </span><span class="kw-2">mut </span>frame_string = String::with_capacity(max_string_len);
     <span class="kw">if </span>clusters.len() &gt; <span class="number">1 </span>{
-        frame_string.push_str(<span class="string">&quot;\nSize of 1st&quot;</span>);
-        <span class="kw">for </span>i <span class="kw">in </span><span class="number">1</span>..clusters.len() { frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;, {}&quot;</span>, Ordinal(i+<span class="number">1</span>))); }
-        frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; largest clusters at t={}: {}&quot;</span>, time, clusters[<span class="number">0</span>].len()));
-        <span class="kw">for </span>cluster <span class="kw">in </span>clusters[<span class="number">1</span>..].iter() { frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;, {}&quot;</span>, cluster.len())); }
+        frame_string += <span class="string">&quot;\nSize of 1st&quot;</span>;
+        <span class="kw">for </span>i <span class="kw">in </span><span class="number">1</span>..clusters.len() { frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;, {}&quot;</span>, Ordinal(i+<span class="number">1</span>)); }
+        frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; largest clusters at t={}: {}&quot;</span>, time, clusters[<span class="number">0</span>].len());
+        <span class="kw">for </span>cluster <span class="kw">in </span>clusters[<span class="number">1</span>..].iter() { frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;, {}&quot;</span>, cluster.len()); }
     } <span class="kw">else </span>{
-        frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\nSize of largest cluster at t={}: {}&quot;</span>, time, clusters[<span class="number">0</span>].len()));
+        frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;\nSize of largest cluster at t={}: {}&quot;</span>, time, clusters[<span class="number">0</span>].len());
     }
     <span class="kw">for </span>cluster <span class="kw">in </span>clusters.into_iter() {
-        frame_string.push_str(<span class="string">&quot;\nMolecules: &quot;</span>);
+        frame_string += <span class="string">&quot;\nMolecules: &quot;</span>;
         <span class="kw">for </span>id <span class="kw">in </span>cluster {
-            frame_string.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {id:&gt;8}&quot;</span>));
+            frame_string += <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot; {id:&gt;8}&quot;</span>);
         }
     }
 

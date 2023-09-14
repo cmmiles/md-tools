@@ -295,30 +295,60 @@ impl Universe {
         -> Result<(), &'static str>
     {
         if op_list.len() == 0 { panic!("No Steinhardt parameters selected.") }
+        let molecules: Vec<Molecule> = self.get_molecules().into_iter()
+            .filter(|mol| mol.name == resname && mol.atoms.len() > 2)
+            .collect();
+        if molecules.len() == 0 { panic!("No molecules in selection!"); }
+
+        // Read the output location if it exists, set it to md-tools.out if not.
+        // Check whether to output a regular output file or a csv
+        let (outfile, ext) = match &outfile {
+            Some(outfile) => (
+                outfile.parent().unwrap().join(outfile.file_stem().unwrap()),
+                match outfile.extension() {
+                    Some(ext) => String::from(".") + ext.to_str().unwrap(),
+                    None => String::new(),
+                }
+            ),
+            None => (PathBuf::from("md-tools"), String::from(".out")),
+        };
+
+        let csv_flag = ext == ".csv";
+
+        let (csv_header, csv_indices) = if csv_flag {
+            let mut csv_header = format!("{}:{}", molecules[0].name, molecules[0].id);
+            for molecule in molecules[1..].iter() { csv_header += &format!(",{}:{}", molecule.name, molecule.id); }
+            (csv_header, molecules.iter().map(|mol| mol.id).collect())
+        } else {
+            (String::new(), Vec::new())
+        };
+
         thread::scope(|analysis_scope| -> Result<(), &'static str> {
             let (tx, rx) = mpsc::channel();
 
             analysis_scope.spawn(move || {
-                let outfile = match &outfile {
-                    Some(outfile) => outfile.to_str().unwrap(),
-                    None => "outputs/md-tools.out",
-                };
                 let mut f_list = Vec::new();
                 for op in op_list.iter() {
                     let mut f = match op {
-                        OrderParameter::Q3 => fs::File::create(String::from(outfile) + ".q3"),
-                        OrderParameter::Q4 => fs::File::create(String::from(outfile) + ".q4"),
-                        OrderParameter::Q6 => fs::File::create(String::from(outfile) + ".q6"),
-                        OrderParameter::Theta => fs::File::create(String::from(outfile) + ".theta"),
+                        OrderParameter::Q3 => fs::File::create(String::from(outfile.to_str().unwrap()) + ".q3" + &ext),
+                        OrderParameter::Q4 => fs::File::create(String::from(outfile.to_str().unwrap()) + ".q4" + &ext),
+                        OrderParameter::Q6 => fs::File::create(String::from(outfile.to_str().unwrap()) + ".q6" + &ext),
+                        OrderParameter::Theta => fs::File::create(String::from(outfile.to_str().unwrap()) + ".theta" + &ext),
                     }.expect("error creating output file");
-                    write!(f, "{}", op.title_line())
-                        .expect("error writing to output file");
+
+                    if csv_flag { write!(f, "{}", csv_header).expect("error writing to output file"); }
+                    else { write!(f, "{}", op.title_line()).expect("error writing to output file"); }
                     f_list.push(f);
                 }
 
                 for (op_index, time, frame_indices, frame_output) in rx {
-                    output::steinhardt(frame_indices, frame_output, time, &mut f_list[op_index])
-                        .expect("error writing to output file");
+                    if csv_flag {
+                        output::csv(frame_indices, frame_output, &csv_indices, &mut f_list[op_index])
+                            .expect("error writing to csv file");
+                    } else {
+                        output::steinhardt(frame_indices, frame_output, time, &mut f_list[op_index])
+                            .expect("error writing to output file");
+                    }
                 }
             });
         

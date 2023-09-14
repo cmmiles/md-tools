@@ -105,6 +105,33 @@
 <a href="#105" id="105">105</a>
 <a href="#106" id="106">106</a>
 <a href="#107" id="107">107</a>
+<a href="#108" id="108">108</a>
+<a href="#109" id="109">109</a>
+<a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
+<a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span>num::complex::Complex;
 <span class="kw">use </span>std::{thread, sync::mpsc};
 
@@ -112,8 +139,15 @@
 <span class="kw">use </span><span class="kw">crate</span>::math::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// Calculates q_l^m parameters for the whole system at the current frame
-</span><span class="kw">pub fn </span>qlm(<span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8, cutoff: <span class="kw-2">&amp;</span>f64, molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, <span class="kw-2">&amp;</span>opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;, opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;)
--&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
+</span><span class="kw">pub fn </span>qlm(
+    <span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8,
+    cutoff: <span class="kw-2">&amp;</span>f64,
+    molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;,
+    <span class="kw-2">&amp;</span>opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;,
+    opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;,
+    min_coord_number: usize,
+    max_coord_number: usize,
+) -&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
 {
     <span class="kw">let </span>nt = <span class="number">1</span>;
 
@@ -132,7 +166,15 @@
             <span class="kw">let </span>(tx, rx) = mpsc::channel();
             receivers.push(rx);
             s.spawn(<span class="kw">move </span>|| {
-                tx.send(thread_qlm(<span class="kw-2">&amp;</span>l, cutoff, <span class="kw-2">&amp;</span>filtered_molecules[(i<span class="kw-2">*</span>n/nt)..((i+<span class="number">1</span>)<span class="kw-2">*</span>n/nt)], <span class="kw-2">&amp;</span>molecules, <span class="kw-2">&amp;</span>opt_pbc)).unwrap();
+                tx.send(thread_qlm(
+                    <span class="kw-2">&amp;</span>l,
+                    cutoff,
+                    <span class="kw-2">&amp;</span>filtered_molecules[(i<span class="kw-2">*</span>n/nt)..((i+<span class="number">1</span>)<span class="kw-2">*</span>n/nt)],
+                    <span class="kw-2">&amp;</span>molecules,
+                    <span class="kw-2">&amp;</span>opt_pbc,
+                    min_coord_number,
+                    max_coord_number
+                )).unwrap();
             });
         }
         <span class="kw">for </span>rx <span class="kw">in </span>receivers.iter() {
@@ -145,25 +187,37 @@
 }
 
 <span class="doccomment">/// Calculates q_l^m parameters for a slice of the system at the current frame
-</span><span class="kw">fn </span>thread_qlm(<span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8, cutoff: <span class="kw-2">&amp;</span>f64, mol_slice: <span class="kw-2">&amp;</span>[Molecule], molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;)
-    -&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
+</span><span class="kw">fn </span>thread_qlm(
+    <span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8,
+    cutoff: <span class="kw-2">&amp;</span>f64,
+    mol_slice: <span class="kw-2">&amp;</span>[Molecule],
+    molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;,
+    opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;,
+    min_coord_number: usize,
+    max_coord_number: usize,
+) -&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
 {
     <span class="kw">let </span><span class="kw-2">mut </span>results: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = Vec::with_capacity(mol_slice.len());
     <span class="kw">for </span>molecule <span class="kw">in </span>mol_slice.iter() {
         <span class="kw">let </span>neighbours = molecule.coord_shell(<span class="kw-2">&amp;</span>molecules, cutoff, opt_pbc);
         <span class="kw">let </span>n_neighbours = neighbours.len();
-        <span class="kw">let </span>r_iter = neighbours.iter().map(|x| molecule.atoms[<span class="number">0</span>].vector_to_coord(x.atoms[<span class="number">0</span>], opt_pbc));
-        <span class="kw">let </span><span class="kw-2">mut </span>spherical_harmonics: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = (<span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>)).map(|<span class="kw">_</span>| Vec::with_capacity(n_neighbours)).collect();
-        <span class="kw">for </span><span class="kw-2">mut </span>r <span class="kw">in </span>r_iter {
-            <span class="kw">for </span>m <span class="kw">in </span>-l..=l {
-                spherical_harmonics[(m + l) <span class="kw">as </span>usize].push(spherical_harmonic(<span class="kw-2">&amp;</span>l, <span class="kw-2">&amp;</span>m, <span class="kw-2">&amp;mut </span>r).expect(<span class="string">&quot;Spherical harmonic error&quot;</span>));
+        <span class="kw">if </span>n_neighbours &gt;= min_coord_number &amp;&amp; n_neighbours &lt;= max_coord_number {
+            <span class="kw">let </span>r_iter = neighbours.iter().map(|x| molecule.atoms[<span class="number">0</span>].vector_to_coord(x.atoms[<span class="number">0</span>], opt_pbc));
+            <span class="kw">let </span><span class="kw-2">mut </span>spherical_harmonics: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = (<span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>)).map(|<span class="kw">_</span>| Vec::with_capacity(n_neighbours)).collect();
+            <span class="kw">for </span><span class="kw-2">mut </span>r <span class="kw">in </span>r_iter {
+                <span class="kw">for </span>m <span class="kw">in </span>-l..=l {
+                    spherical_harmonics[(m + l) <span class="kw">as </span>usize].push(spherical_harmonic(<span class="kw-2">&amp;</span>l, <span class="kw-2">&amp;</span>m, <span class="kw-2">&amp;mut </span>r).expect(<span class="string">&quot;Spherical harmonic error&quot;</span>));
+                }
             }
+            <span class="kw">let </span><span class="kw-2">mut </span>qlm_atom = Vec::with_capacity((<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>) <span class="kw">as </span>usize);
+            <span class="kw">for </span>sh_vec <span class="kw">in </span>spherical_harmonics.iter() {
+                qlm_atom.push(sh_vec.iter().sum::&lt;Complex&lt;f64&gt;&gt;().unscale(n_neighbours <span class="kw">as </span>f64));
+            }
+            results.push(qlm_atom);
+        } <span class="kw">else </span>{
+            <span class="comment">// If n_neighbours not within chosen range, output qlm = NaN for all m
+            </span>results.push((-l..l).into_iter().map(|<span class="kw">_</span>| Complex::new(f64::NAN, f64::NAN)).collect());
         }
-        <span class="kw">let </span><span class="kw-2">mut </span>qlm_atom = Vec::with_capacity((<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>) <span class="kw">as </span>usize);
-        <span class="kw">for </span>sh_vec <span class="kw">in </span>spherical_harmonics.iter() {
-            qlm_atom.push(sh_vec.iter().sum::&lt;Complex&lt;f64&gt;&gt;().unscale(n_neighbours <span class="kw">as </span>f64));
-        }
-        results.push(qlm_atom);
     }
     results
 }
@@ -174,7 +228,7 @@
 {
     <span class="kw">let </span>n = molecules.len();
     <span class="kw">let </span><span class="kw-2">mut </span>results: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = Vec::with_capacity(n);
-    <span class="kw">let </span>qlm_vec = qlm(<span class="kw-2">&amp;</span>l, cutoff, molecules, <span class="kw-2">&amp;</span>opt_pbc, <span class="prelude-val">None</span>);
+    <span class="kw">let </span>qlm_vec = qlm(<span class="kw-2">&amp;</span>l, cutoff, molecules, <span class="kw-2">&amp;</span>opt_pbc, <span class="prelude-val">None</span>, <span class="number">3</span>, <span class="number">10</span>);
     <span class="kw">let </span>cutoff_sq = cutoff<span class="kw-2">*</span>cutoff;
 
     <span class="kw">match </span><span class="kw-2">&amp;</span>opt_ndx {

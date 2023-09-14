@@ -45,7 +45,7 @@ pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Opti
     };
 
     let mut frame_output: Vec<f64> = Vec::with_capacity(n);
-    for qlm in steinhardt::qlm(&l, cutoff, molecules, opt_pbc, opt_ndx).into_iter() {
+    for qlm in steinhardt::qlm(&l, cutoff, molecules, opt_pbc, opt_ndx, 4, 4).into_iter() {
         let sum: f64 = qlm.iter().map(|x| x.norm_sqr()).sum();
         frame_output.push(((4.0*PI)/((2*l+1) as f64) * sum).sqrt());
     }
@@ -106,7 +106,7 @@ pub fn local_steinhardt_2(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pb
 
     let cutoff_sq = cutoff*cutoff;
     let mut frame_output: Vec<f64> = Vec::with_capacity(n);
-    let qlm_vec = steinhardt::qlm(&l, cutoff, molecules, &opt_pbc, None);
+    let qlm_vec = steinhardt::qlm(&l, cutoff, molecules, &opt_pbc, None, 3, 10);
 
     match &opt_ndx {
         None => {

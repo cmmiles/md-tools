@@ -142,8 +142,8 @@ impl OrderParameter {
         match self {
             OrderParameter::Theta => "Water dipole orientations outputted from md-tools",
             OrderParameter::Q3 => "Steinhardt q3 bond order parameters outputted from md-tools",
-            OrderParameter::Q4 => "Steinhardt q3 bond order parameters outputted from md-tools",
-            OrderParameter::Q6 => "Steinhardt q3 bond order parameters outputted from md-tools",
+            OrderParameter::Q4 => "Steinhardt q4 bond order parameters outputted from md-tools",
+            OrderParameter::Q6 => "Steinhardt q6 bond order parameters outputted from md-tools",
         }
     }
 }
