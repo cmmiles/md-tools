@@ -147,6 +147,7 @@
 <a href="#147" id="147">147</a>
 <a href="#148" id="148">148</a>
 <a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module for parsing input arguments.
 
 </span><span class="kw">use </span>std::path::PathBuf;
@@ -212,7 +213,8 @@
         <span class="prelude-val">Ok</span>(config)
     }
 
-    <span class="kw">fn </span>read_next_arg(args: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>Iterator&lt;Item = String&gt;, config: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;&gt; {
+    <span class="doccomment">/// Read the next command line argument, will return an error if the next argument is not in the accepted list
+    </span><span class="kw">fn </span>read_next_arg(args: <span class="kw-2">&amp;mut </span><span class="kw">impl </span>Iterator&lt;Item = String&gt;, config: <span class="kw-2">&amp;mut </span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;&gt; {
         <span class="kw">match </span><span class="kw-2">&amp;</span>args.next()<span class="question-mark">?</span>[..] {
             <span class="string">&quot;-s&quot; </span>| <span class="string">&quot;--sfile&quot; </span>=&gt; <span class="kw">match </span>args.next() {
                 <span class="prelude-val">Some</span>(sfile) =&gt; config.sfile = <span class="prelude-val">Some</span>(PathBuf::from(sfile)),

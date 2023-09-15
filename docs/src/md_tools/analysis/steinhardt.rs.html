@@ -132,7 +132,25 @@
 <a href="#132" id="132">132</a>
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>num::complex::Complex;
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+</pre></div><pre class="rust"><code><span class="doccomment">//! Handles subtasks for Steinhardt parameter calculations.
+
+</span><span class="kw">use </span>num::complex::Complex;
 <span class="kw">use </span>std::{thread, sync::mpsc};
 
 <span class="kw">use </span><span class="kw">crate</span>::structure::<span class="kw-2">*</span>;
@@ -143,18 +161,17 @@
     <span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8,
     cutoff: <span class="kw-2">&amp;</span>f64,
     molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;,
-    <span class="kw-2">&amp;</span>opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;,
+    opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;,
     opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;,
     min_coord_number: usize,
     max_coord_number: usize,
 ) -&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
 {
-    <span class="kw">let </span>nt = <span class="number">1</span>;
+    <span class="kw">let </span>nt = <span class="number">1</span>; <span class="comment">// number of threads to use (experimental)
 
-    <span class="kw">let </span>filtered_molecules = <span class="kw-2">&amp;</span><span class="kw">match </span><span class="kw-2">&amp;</span>opt_ndx {
-        <span class="prelude-val">None </span>=&gt; molecules.clone(),
-        <span class="prelude-val">Some</span>(ndx) =&gt; ndx.into_iter().map(|i| molecules[<span class="kw-2">*</span>i].clone()).collect(),
-    };
+    // If no indices are specified, we calculate for all molecules
+    // Otherwise, we calculate for only the specified molecules (but still need the other molecules for the calculation)
+    </span><span class="kw">let </span>filtered_molecules = <span class="kw-2">&amp;</span><span class="kw">super</span>::filter_indices(molecules, opt_ndx);
 
     <span class="kw">let </span>n = filtered_molecules.len();
 
@@ -171,7 +188,7 @@
                     cutoff,
                     <span class="kw-2">&amp;</span>filtered_molecules[(i<span class="kw-2">*</span>n/nt)..((i+<span class="number">1</span>)<span class="kw-2">*</span>n/nt)],
                     <span class="kw-2">&amp;</span>molecules,
-                    <span class="kw-2">&amp;</span>opt_pbc,
+                    opt_pbc,
                     min_coord_number,
                     max_coord_number
                 )).unwrap();
@@ -187,6 +204,7 @@
 }
 
 <span class="doccomment">/// Calculates q_l^m parameters for a slice of the system at the current frame
+/// Requires a slice of the molcules to calculate for, and also the full molecule list for the calculations
 </span><span class="kw">fn </span>thread_qlm(
     <span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8,
     cutoff: <span class="kw-2">&amp;</span>f64,
@@ -201,66 +219,80 @@
     <span class="kw">for </span>molecule <span class="kw">in </span>mol_slice.iter() {
         <span class="kw">let </span>neighbours = molecule.coord_shell(<span class="kw-2">&amp;</span>molecules, cutoff, opt_pbc);
         <span class="kw">let </span>n_neighbours = neighbours.len();
-        <span class="kw">if </span>n_neighbours &gt;= min_coord_number &amp;&amp; n_neighbours &lt;= max_coord_number {
-            <span class="kw">let </span>r_iter = neighbours.iter().map(|x| molecule.atoms[<span class="number">0</span>].vector_to_coord(x.atoms[<span class="number">0</span>], opt_pbc));
-            <span class="kw">let </span><span class="kw-2">mut </span>spherical_harmonics: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = (<span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>)).map(|<span class="kw">_</span>| Vec::with_capacity(n_neighbours)).collect();
+
+        <span class="comment">// Only include molecules with the right sized coordination shell
+        // Min should be at least 2 -- if n_neighbours==1, this will output 1.0 for all l,m
+        </span><span class="kw">if </span>n_neighbours &gt;= min_coord_number &amp;&amp; n_neighbours &lt;= max_coord_number {
+            <span class="comment">// Instantiate empty 2d vec for the spherical harmonics
+            </span><span class="kw">let </span><span class="kw-2">mut </span>spherical_harmonics: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = (<span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>))
+                .map(|<span class="kw">_</span>| Vec::with_capacity(n_neighbours)).collect();
+
+            <span class="comment">// Create iterator of vectors to each of the first coordination shell molecules
+            // compute all the l-th order spherical harmonics for each such vector
+            </span><span class="kw">let </span>r_iter = neighbours.iter().map(|x| molecule.atoms[<span class="number">0</span>].vector_to_coord(x.atoms[<span class="number">0</span>], opt_pbc));
             <span class="kw">for </span><span class="kw-2">mut </span>r <span class="kw">in </span>r_iter {
                 <span class="kw">for </span>m <span class="kw">in </span>-l..=l {
-                    spherical_harmonics[(m + l) <span class="kw">as </span>usize].push(spherical_harmonic(<span class="kw-2">&amp;</span>l, <span class="kw-2">&amp;</span>m, <span class="kw-2">&amp;mut </span>r).expect(<span class="string">&quot;Spherical harmonic error&quot;</span>));
+                    spherical_harmonics[(m + l) <span class="kw">as </span>usize].push(spherical_harmonic(<span class="kw-2">&amp;</span>l, <span class="kw-2">&amp;</span>m, <span class="kw-2">&amp;mut </span>r)
+                        .expect(<span class="string">&quot;Spherical harmonic error&quot;</span>));
                 }
             }
-            <span class="kw">let </span><span class="kw-2">mut </span>qlm_atom = Vec::with_capacity((<span class="number">2</span><span class="kw-2">*</span>l + <span class="number">1</span>) <span class="kw">as </span>usize);
-            <span class="kw">for </span>sh_vec <span class="kw">in </span>spherical_harmonics.iter() {
-                qlm_atom.push(sh_vec.iter().sum::&lt;Complex&lt;f64&gt;&gt;().unscale(n_neighbours <span class="kw">as </span>f64));
-            }
+
+            <span class="comment">// Take average of spherical harmonics to give qlm
+            </span><span class="kw">let </span>qlm_atom = spherical_harmonics.into_iter()
+                .map(|sh_vec| sh_vec.iter().sum::&lt;Complex&lt;f64&gt;&gt;().unscale(n_neighbours <span class="kw">as </span>f64)).collect();
+
             results.push(qlm_atom);
+
         } <span class="kw">else </span>{
             <span class="comment">// If n_neighbours not within chosen range, output qlm = NaN for all m
-            </span>results.push((-l..l).into_iter().map(|<span class="kw">_</span>| Complex::new(f64::NAN, f64::NAN)).collect());
+            </span>results.push((-l..l).map(|<span class="kw">_</span>| Complex::new(f64::NAN, f64::NAN)).collect());
         }
     }
     results
 }
 
 <span class="doccomment">/// Calculates averaged q_l^m parameters over first coord shell for the whole system at the current frame
-</span><span class="kw">pub fn </span>local_qlm(<span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8, cutoff: <span class="kw-2">&amp;</span>f64, molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, <span class="kw-2">&amp;</span>opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;, opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;)
--&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
+</span><span class="kw">pub fn </span>local_qlm(
+    <span class="kw-2">&amp;</span>l: <span class="kw-2">&amp;</span>i8,
+    cutoff: <span class="kw-2">&amp;</span>f64,
+    molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;,
+    opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;,
+    opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;,
+    min_coord_number: usize,
+    max_coord_number: usize,
+) -&gt; Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt;
 {
     <span class="kw">let </span>n = molecules.len();
     <span class="kw">let </span><span class="kw-2">mut </span>results: Vec&lt;Vec&lt;Complex&lt;f64&gt;&gt;&gt; = Vec::with_capacity(n);
-    <span class="kw">let </span>qlm_vec = qlm(<span class="kw-2">&amp;</span>l, cutoff, molecules, <span class="kw-2">&amp;</span>opt_pbc, <span class="prelude-val">None</span>, <span class="number">3</span>, <span class="number">10</span>);
     <span class="kw">let </span>cutoff_sq = cutoff<span class="kw-2">*</span>cutoff;
 
-    <span class="kw">match </span><span class="kw-2">&amp;</span>opt_ndx {
-        <span class="prelude-val">None </span>=&gt; {
-            <span class="kw">for </span>(i, molecule) <span class="kw">in </span>molecules.iter().enumerate() {
-                <span class="kw">let </span><span class="kw-2">mut </span>lqlm_atom = qlm_vec[i].clone();
-                <span class="kw">let </span><span class="kw-2">mut </span>n_neighbours: f64 = <span class="number">1.0</span>; <span class="comment">// Starts at 1 to include molecule i
-                </span><span class="kw">for </span>(j, neighbour) <span class="kw">in </span>molecules.iter().enumerate() {
-                    <span class="kw">if </span>i != j &amp;&amp; molecule.dsq(neighbour, <span class="kw-2">&amp;</span>opt_pbc) &lt;= cutoff_sq {
-                        n_neighbours += <span class="number">1.0</span>;
-                        <span class="kw">for </span>k <span class="kw">in </span><span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l <span class="kw">as </span>usize + <span class="number">1</span>) {
-                            lqlm_atom[k] += qlm_vec[j][k];
-                        }
-                    }
+    <span class="comment">// First calculate regular qlm values for all molecules
+    </span><span class="kw">let </span>qlm_vec = qlm(<span class="kw-2">&amp;</span>l, cutoff, molecules, opt_pbc, <span class="prelude-val">None</span>, <span class="number">2</span>, <span class="number">8</span>);
+
+    <span class="comment">// If no indices are specified, we calculate for all molecules
+    // Otherwise, we calculate for only the specified molecules (but still need the other molecules for the calculation)
+    </span><span class="kw">let </span>filtered_molecules = <span class="kw-2">&amp;</span><span class="kw">super</span>::filter_indices(molecules, opt_ndx);
+
+    <span class="comment">// For each of the molecules we are calculating for, average the regular qlm across the molecule *and* its first
+    // coordination shell
+    </span><span class="kw">for </span>(i, molecule) <span class="kw">in </span>filtered_molecules.iter().enumerate() {
+        <span class="kw">let </span><span class="kw-2">mut </span>lqlm_atom = qlm_vec[i].clone();
+        <span class="kw">let </span><span class="kw-2">mut </span>n_neighbours: usize = <span class="number">1</span>; <span class="comment">// Starts at 1 to include molecule i
+        </span><span class="kw">for </span>(j, neighbour) <span class="kw">in </span>molecules.iter().enumerate() {
+            <span class="kw">if </span>i != j &amp;&amp; molecule.dsq(neighbour, <span class="kw-2">&amp;</span>opt_pbc) &lt;= cutoff_sq {
+                n_neighbours += <span class="number">1</span>;
+                <span class="kw">for </span>k <span class="kw">in </span><span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l <span class="kw">as </span>usize + <span class="number">1</span>) {
+                    lqlm_atom[k] += qlm_vec[j][k];
                 }
-                results.push(lqlm_atom.into_iter().map(|q| q/n_neighbours).collect());
             }
         }
-        <span class="prelude-val">Some</span>(ndx) =&gt; {
-            <span class="kw">for </span>i <span class="kw">in </span>ndx.iter() {
-                <span class="kw">let </span><span class="kw-2">mut </span>lqlm_atom = qlm_vec[<span class="kw-2">*</span>i].clone();
-                <span class="kw">let </span><span class="kw-2">mut </span>n_neighbours: f64 = <span class="number">1.0</span>; <span class="comment">// Starts at 1 to include molecule i
-                </span><span class="kw">for </span>(j, neighbour) <span class="kw">in </span>molecules.iter().enumerate() {
-                    <span class="kw">if </span><span class="kw-2">*</span>i != j &amp;&amp; molecules[<span class="kw-2">*</span>i].dsq(neighbour, <span class="kw-2">&amp;</span>opt_pbc) &lt;= cutoff_sq {
-                        n_neighbours += <span class="number">1.0</span>;
-                        <span class="kw">for </span>k <span class="kw">in </span><span class="number">0</span>..(<span class="number">2</span><span class="kw-2">*</span>l <span class="kw">as </span>usize + <span class="number">1</span>) {
-                            lqlm_atom[k] += qlm_vec[j][k];
-                        }
-                    }
-                }
-                results.push(lqlm_atom.into_iter().map(|q| q/n_neighbours).collect());
-            }
+        
+        <span class="kw">if </span>n_neighbours &gt;= min_coord_number + <span class="number">1 </span>&amp;&amp; n_neighbours &lt;= max_coord_number + <span class="number">1 </span>{
+            <span class="comment">// Only include molecules with the right sized coordination shell
+            </span>results.push(lqlm_atom.into_iter().map(|q| q/(n_neighbours <span class="kw">as </span>f64)).collect());
+        } <span class="kw">else </span>{
+            <span class="comment">// If n_neighbours not within chosen range, output local_qlm = NaN for all m
+            </span>results.push((-l..l).map(|<span class="kw">_</span>| Complex::new(f64::NAN, f64::NAN)).collect());
         }
     };
 

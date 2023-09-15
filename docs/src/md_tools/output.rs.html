@@ -101,6 +101,9 @@
 <a href="#101" id="101">101</a>
 <a href="#102" id="102">102</a>
 <a href="#103" id="103">103</a>
+<a href="#104" id="104">104</a>
+<a href="#105" id="105">105</a>
+<a href="#106" id="106">106</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module to handle outputting analysis results to files.
 
 </span><span class="kw">use </span>std::{
@@ -115,7 +118,10 @@
 </span><span class="kw">pub fn </span>csv(frame_indices: Vec&lt;u32&gt;, frame_output: Vec&lt;f64&gt;, csv_indices: <span class="kw-2">&amp;</span>Vec&lt;u32&gt;, f: <span class="kw-2">&amp;mut </span>fs::File)
     -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;
 {
-    <span class="kw">let </span><span class="kw-2">mut </span>csv_line = String::with_capacity(<span class="number">9</span><span class="kw-2">*</span>csv_indices.len());
+    <span class="comment">// Each line contains max 9n characters, all ASCII:
+    // 8 per molecule for the values (or 0 for NaN) and 1 per molecule for the comma (or newline)
+    </span><span class="kw">let </span><span class="kw-2">mut </span>csv_line = String::with_capacity(<span class="number">9</span><span class="kw-2">*</span>csv_indices.len());
+
     <span class="comment">// frame_indices are just what&#39;s computed for the frame, csv_indices are all molecules which may be included
     // i is current frame_indices index
     </span><span class="kw">let </span><span class="kw-2">mut </span>i = <span class="kw">if </span>csv_indices[<span class="number">0</span>] == frame_indices[<span class="number">0</span>] {

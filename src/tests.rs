@@ -18,19 +18,19 @@ fn read_gro_test() {
 #[test]
 #[should_panic]
 fn invalid_gro_test_1() {
-    Universe::new(Some(PathBuf::from("tests/read_gro_test_1.gro")), None, true);
+    Universe::new(Some(PathBuf::from("tests/invalid_gro_1.gro")), None, true);
 }
 
 #[test]
 #[should_panic]
 fn invalid_gro_test_2() {
-    Universe::new(Some(PathBuf::from("tests/read_gro_test_2.gro")), None, true);
+    Universe::new(Some(PathBuf::from("tests/invalid_gro_2.gro")), None, true);
 }
 
 #[test]
 #[should_panic]
 fn invalid_gro_test_3() {
-    Universe::new(Some(PathBuf::from("tests/read_gro_test_3.gro")), None, true);
+    Universe::new(Some(PathBuf::from("tests/invalid_gro_3.gro")), None, true);
 }
 
 #[test]
