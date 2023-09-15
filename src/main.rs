@@ -1,3 +1,5 @@
+// Shell for reading command line arguments and running the CLI application
+
 use std::{process, env};
 use md_tools::config::Config;
 

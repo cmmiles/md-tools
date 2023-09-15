@@ -63,6 +63,7 @@ impl Config {
         Ok(config)
     }
 
+    /// Read the next command line argument, will return an error if the next argument is not in the accepted list
     fn read_next_arg(args: &mut impl Iterator<Item = String>, config: &mut Self) -> Option<Result<(), &'static str>> {
         match &args.next()?[..] {
             "-s" | "--sfile" => match args.next() {

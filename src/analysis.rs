@@ -30,25 +30,11 @@ pub fn water_dipole(molecules: &Vec<Molecule>, ref_axis: &Vector, opt_pbc: &Opti
 /// [^cite]: [P. J. Steinhardt, D. R. Nelson and M. Ronchetti, *Phys. Rev. B*, 1983, **28**, 784--805](https://doi.org/10.1103/PhysRevB.28.784).
 pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
 -> (Vec<u32>, Vec<f64>) {
-    let n = molecules.len();
-    let frame_indices = match &opt_ndx {
-        None => {
-            let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
-            for molecule in molecules.iter() { frame_indices.push(molecule.id); }
-            frame_indices
-        }
-        Some(ndx) => {
-            let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
-            for i in ndx.iter() { frame_indices.push(molecules[*i].id); }
-            frame_indices
-        }
-    };
-
-    let mut frame_output: Vec<f64> = Vec::with_capacity(n);
-    for qlm in steinhardt::qlm(&l, cutoff, molecules, opt_pbc, opt_ndx, 4, 4).into_iter() {
-        let sum: f64 = qlm.iter().map(|x| x.norm_sqr()).sum();
-        frame_output.push(((4.0*PI)/((2*l+1) as f64) * sum).sqrt());
-    }
+    let (min_coord_number, max_coord_number) = (4, 4);
+    let frame_indices = filter_indices(molecules, opt_ndx).iter().map(|mol| mol.id).collect();
+    let frame_output = steinhardt::qlm(&l, cutoff, molecules, opt_pbc, opt_ndx, min_coord_number, max_coord_number)
+        .into_iter().map(|qlm| qlm.iter().map(|x| x.norm_sqr()).sum::<f64>())
+        .map(|sum| ((4.0*PI)/((2*l+1) as f64) * sum).sqrt()).collect();
 
     (frame_indices, frame_output)
 }
@@ -59,27 +45,11 @@ pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Opti
 /// [^cite]: [W. Lechner and C. Dellago, *J. Chem. Phys.*, 2008, **129**, 114707.](https://doi.org/10.1063/1.2977970)
 pub fn local_steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
 -> (Vec<u32>, Vec<f64>) {
-    let n = molecules.len();
-    let frame_indices = match &opt_ndx {
-        None => {
-            let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
-            for molecule in molecules.iter() { frame_indices.push(molecule.id); }
-            frame_indices
-        }
-        Some(ndx) => {
-            let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
-            for i in ndx.iter() { frame_indices.push(molecules[*i].id); }
-            frame_indices
-        }
-    };
-
-    let mut frame_output: Vec<f64> = Vec::with_capacity(n);
-
-    let qlm_vec = steinhardt::local_qlm(&l, cutoff, &molecules, &opt_pbc, opt_ndx);
-    for qlm in qlm_vec.iter() {
-        let sum: f64 = qlm.iter().map(|x| x.norm_sqr()).sum();
-        frame_output.push(((4.0*PI)/((2*l+1) as f64) * sum).sqrt());
-    }
+    let (min_coord_number, max_coord_number) = (4, 4);
+    let frame_indices = filter_indices(molecules, opt_ndx).iter().map(|mol| mol.id).collect();
+    let frame_output = steinhardt::local_qlm(&l, cutoff, molecules, opt_pbc, opt_ndx, min_coord_number, max_coord_number)
+        .into_iter().map(|qlm| qlm.iter().map(|x| x.norm_sqr()).sum::<f64>())
+        .map(|sum| ((4.0*PI)/((2*l+1) as f64) * sum).sqrt()).collect();
 
     (frame_indices, frame_output)
 }
@@ -90,62 +60,36 @@ pub fn local_steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc:
 /// [^cite]: [T. Li, D. Donadio, G. Russo and G. Galli, *Phys. Chem. Chem. Phys.*, 2011, **13**, 19807--19813.](https://doi.org/10.1063/1.2977970)
 pub fn local_steinhardt_2(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
 -> (Vec<u32>, Vec<f64>) {
-    let n = molecules.len();
-    let frame_indices = match &opt_ndx {
-        None => {
-            let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
-            for molecule in molecules.iter() { frame_indices.push(molecule.id); }
-            frame_indices
-        }
-        Some(ndx) => {
-            let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
-            for i in ndx.iter() { frame_indices.push(molecules[*i].id); }
-            frame_indices
-        }
-    };
+    let (min_coord_number, max_coord_number) = (4, 4);
+    let filtered_molecules = filter_indices(molecules, opt_ndx);
+    let frame_indices = filtered_molecules.iter().map(|mol| mol.id).collect();
 
-    let cutoff_sq = cutoff*cutoff;
-    let mut frame_output: Vec<f64> = Vec::with_capacity(n);
-    let qlm_vec = steinhardt::qlm(&l, cutoff, molecules, &opt_pbc, None, 3, 10);
+    let frame_output = filtered_molecules.iter().enumerate().map(|(i, molecule)| {
+        let cutoff_sq = cutoff*cutoff;
+        let mut n_neighbours: usize = 0;
+        let mut sum = 0.0;
+        
+        // Calculate qlm for every molecule
+        let qlm_vec = steinhardt::qlm(&l, cutoff, molecules, &opt_pbc, None, 2, 8);
 
-    match &opt_ndx {
-        None => {
-            for (i, molecule) in molecules.iter().enumerate() {
-                let mut n_neighbours: u8 = 0;
-                let mut sum = 0.0;
-                let qi_norm = qlm_vec[i].iter().map(|q| q.norm_sqr()).sum::<f64>().sqrt();
-                for (j, neighbour) in molecules.iter().enumerate() {
-                    if i != j && molecule.dsq(neighbour, &opt_pbc) <= cutoff_sq {
-                        let mut pair_sum = 0.0;
-                        n_neighbours += 1;
-                        for m in 0..(2*l+1) as usize { pair_sum += (qlm_vec[i][m] * qlm_vec[j][m].conj()).re; }
-                        let qj_norm = qlm_vec[j].iter().map(|q| q.norm_sqr()).sum::<f64>().sqrt();
-                        sum += pair_sum / (qi_norm * qj_norm);
-                    }
-                }
-                
-                frame_output.push(sum / (n_neighbours as f64));
+        // Calculate norm of all qlms for molecule i (molecule)
+        let qi_norm = qlm_vec[i].iter().map(|q| q.norm_sqr()).sum::<f64>().sqrt();
+
+        for (j, neighbour) in molecules.iter().enumerate() {
+            if i != j && molecule.dsq(neighbour, &opt_pbc) <= cutoff_sq {
+                let mut pair_sum = 0.0;
+                n_neighbours += 1;
+                for m in 0..(2*l+1) as usize { pair_sum += (qlm_vec[i][m] * qlm_vec[j][m].conj()).re; }
+                // Calculate norm of all qlms for molecule j (neighbour)
+                let qj_norm = qlm_vec[j].iter().map(|q| q.norm_sqr()).sum::<f64>().sqrt();
+                sum += pair_sum / (qi_norm * qj_norm);
             }
         }
-        Some(ndx) => {
-            for i in ndx.iter() {
-                let mut n_neighbours: u8 = 0;
-                let mut sum = 0.0;
-                let qi_norm = qlm_vec[*i].iter().map(|q| q.norm_sqr()).sum::<f64>().sqrt();
-                for (j, neighbour) in molecules.iter().enumerate() {
-                    if *i != j && molecules[*i].dsq(neighbour, &opt_pbc) <= cutoff_sq {
-                        let mut pair_sum = 0.0;
-                        n_neighbours += 1;
-                        for m in 0..(2*l+1) as usize { pair_sum += (qlm_vec[*i][m] * qlm_vec[j][m].conj()).re; }
-                        let qj_norm = qlm_vec[j].iter().map(|q| q.norm_sqr()).sum::<f64>().sqrt();
-                        sum += pair_sum / (qi_norm * qj_norm);
-                    }
-                }
-                
-                frame_output.push(sum / (n_neighbours as f64));
-            }
-        }
-    };
+        // As with other parameters, output NaN if coordination number not within range
+        if n_neighbours >= min_coord_number && n_neighbours <= max_coord_number { sum / (n_neighbours as f64) }
+        else { f64::NAN }
+    }).collect();
+
 
     (frame_indices, frame_output)
 }
@@ -173,6 +117,8 @@ pub fn get_n_hbonds<'a>(
     n_hbonds
 }
 
+/// Checks whether there exists a hydrogen bond between two water molecules
+/// Molecules must be structured [O, H, H (..)]
 fn check_hbond_exists(
     mol1: &Molecule,
     mol2: &Molecule,
@@ -195,4 +141,13 @@ fn check_hbond_exists(
         if angle_between_vectors(&u, &v).to_degrees() >= a_cut_deg { return true; }
     }
     false
+}
+
+/// Takes a list of molecules and a list of indices (which should match the molecules list)
+/// and outputs a list of just those molecules.
+fn filter_indices<'a>(molecules: &'a Vec<Molecule>, opt_ndx: Option<&'a Vec<usize>>) -> Vec<Molecule<'a>> {
+    match &opt_ndx {
+        None => molecules.clone(),
+        Some(ndx) => ndx.into_iter().map(|i| molecules[*i].clone()).collect(),
+    }
 }

@@ -12,7 +12,10 @@ use ordinal::Ordinal;
 pub fn csv(frame_indices: Vec<u32>, frame_output: Vec<f64>, csv_indices: &Vec<u32>, f: &mut fs::File)
     -> Result<(), &'static str>
 {
+    // Each line contains max 9n characters, all ASCII:
+    // 8 per molecule for the values (or 0 for NaN) and 1 per molecule for the comma (or newline)
     let mut csv_line = String::with_capacity(9*csv_indices.len());
+
     // frame_indices are just what's computed for the frame, csv_indices are all molecules which may be included
     // i is current frame_indices index
     let mut i = if csv_indices[0] == frame_indices[0] {
