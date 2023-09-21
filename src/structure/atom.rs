@@ -48,7 +48,7 @@ impl Atom {
         }
     }
 
-    /// Create an Atom from a line of a gro file.
+    /// Create an Atom from a line of a GRO file.
     pub fn from_gro(line: &str) -> Result<Self, &'static str> {
         if line.len() < 44 { return Err("invalid line") }
         let resid: u32 = match &line[0..5].trim().parse() {
@@ -81,7 +81,44 @@ impl Atom {
         })
     }
 
-    /// Write a line for the Atom in gro format.
+    /// Create an Atom from a line of a PDB file.
+    pub fn from_pdb(line: &str) -> Result<Self, &'static str> {
+
+        if &line[..4] != "ATOM" { return Err("record type should be ATOM"); }
+
+        let id: u32 = match &line[6..11].trim().parse() {
+            Ok(val) => *val,
+            Err(_) => return Err("invalid atom id"),
+        };
+        let resid: u32 = match &line[22..26].trim().parse() {
+            Ok(val) => *val,
+            Err(_) => return Err("invalid residue id"),
+        };
+
+        // Coordinates in md-tools are stored as nm, as with the GRO format, PDB files store coordinates in Ang
+        let coords: [f32; 3] = [
+            match &line[30..38].trim().parse::<f32>() {
+                Ok(val) => *val / 10.0,
+                Err(_) => return Err("invalid x coordinate"),
+            },
+            match &line[38..46].trim().parse::<f32>() {
+                Ok(val) => *val / 10.0,
+                Err(_) => return Err("invalid y coordinate"),
+            },
+            match &line[47..54].trim().parse::<f32>() {
+                Ok(val) => *val / 10.0,
+                Err(_) => return Err("invalid z coordinate"),
+            },
+        ];
+
+        Ok(Self {
+            id, resid, coords,
+            name: String::from(*&line[12..16].trim()),
+            resname: String::from(*&line[17..21].trim()),
+        })
+    }
+
+    /// Write a line for the Atom in GRO format.
     pub fn to_gro(&self) -> String {
         let coords = self.coords;
         format!("{:>5}{:<5.5}{:>5.5}{:>5}{:8.3}{:8.3}{:8.3}",

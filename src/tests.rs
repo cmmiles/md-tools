@@ -3,6 +3,7 @@ use structure::{Atom, Universe};
 use std::path::PathBuf;
 use math;
 
+// Test GRO file reading
 #[test]
 fn read_gro_test() {
     let u = Universe::new(Some(PathBuf::from("tests/read_gro_test.gro")), None, true);
@@ -15,6 +16,7 @@ fn read_gro_test() {
     assert!(u.compare_gro(atoms, pbc));
 }
 
+// 3 invalid GRO files and one which is nonexistent
 #[test]
 #[should_panic]
 fn invalid_gro_test_1() {
@@ -39,6 +41,23 @@ fn missing_gro_test() {
     Universe::new(Some(PathBuf::from("tests/missing.gro")), None, true);
 }
 
+// Test PDB to GRO conversion
+#[test]
+fn pdb_to_gro_line() {
+    let pdb_line = "ATOM      1  OW  SOL     1      29.390  24.890 110.650  1.00  0.00";
+    let gro_line = "    1SOL     OW    1   2.939   2.489  11.065";
+    assert_eq!(Atom::from_pdb(pdb_line).unwrap().to_gro(), gro_line);
+}
+
+// Testing writing a GRO file with indices avove the max of 100,000
+#[test]
+fn write_gro_oversize() {
+    let oversize_atom = Atom::new(108_056, "OW", "SOL", 100_001, [1.0, 1.0, 1.0]);
+    let gro_line = "    1SOL     OW 8056   1.000   1.000   1.000";
+    assert_eq!(oversize_atom.to_gro(), gro_line);
+}
+
+// Testing math functions give correct outputs
 #[test]
 fn angle_between_perpendicular_vectors_test() {
     let u = Vector::new(0.0, 0.0, 1.0);

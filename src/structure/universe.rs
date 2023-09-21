@@ -39,12 +39,13 @@ impl fmt::Display for Universe {
 }
 
 impl Universe {
-    /// Constructor method for Universe, reads a structure file (currently only gro files supported).
+    /// Constructor method for Universe, reads a structure file (currently only GRO and PDB files supported).
     /// Optional trajectory file specified (xtc and trr formats supported) which is not read at time of construction.
     pub fn new(sfile: Option<PathBuf>, xtc_file: Option<PathBuf>, pbc: bool) -> Self {
         let (atoms, box_dimensions) = match sfile {
             Some(sfile) => match (&sfile).extension().expect("structure file must have an extension").to_str().unwrap() {
-                "gro" => Universe::from_gro(&*sfile),
+                "gro" => Self::from_gro(&*sfile),
+                "pdb" => Self::from_pdb(&*sfile),
                 ext => panic!("I don't know how to read .{} files", ext),
             }
             None => panic!("no structure file specified"),
@@ -54,20 +55,17 @@ impl Universe {
         Self { atoms, box_dimensions, traj, pbc, time: 0.0 }
     }
 
-    /// Read a gro file.
+    /// Read a GRO file.
     fn from_gro(gro_file: &Path) -> (Vec<Atom>, [f32; 3]) {
         let gro_file = fs::read_to_string(gro_file).unwrap();
         let mut gro_iter = gro_file.lines();
 
-        match gro_iter.next() {
-            Some(_) => {},
-            None => panic!("empty gro input")
-        };
+        gro_iter.next().expect("empty gro input");
 
         let natoms: u32 = gro_iter.next().expect("invalid / missing atom count line in gro")
             .trim().parse().expect("invalid / missing atom count line in gro");
 
-        let mut atoms: Vec<Atom> = Vec::new();
+        let mut atoms = Vec::new();
         for i in 0..natoms {
             atoms.push(match Atom::from_gro(gro_iter.next().unwrap()) {
                 Ok(atom) => atom,
@@ -80,12 +78,42 @@ impl Universe {
             .expect("invalid box dimensions in gro"));
 
         let box_dimensions = [
-            box_dimensions_iter.next().expect("invalid box dimensions in gro"),
-            box_dimensions_iter.next().expect("invalid box dimensions in gro"),
-            box_dimensions_iter.next().expect("invalid box dimensions in gro"),
+            box_dimensions_iter.next().expect("invalid box dimensions in GRO"),
+            box_dimensions_iter.next().expect("invalid box dimensions in GRO"),
+            box_dimensions_iter.next().expect("invalid box dimensions in GRO"),
         ];
 
         ( atoms, box_dimensions )
+    }
+
+    /// Read a PDB file
+    pub fn from_pdb(pdb_file: &Path) -> (Vec<Atom>, [f32; 3]) {
+        let pdb_file = fs::read_to_string(pdb_file).unwrap();
+        let mut pdb_iter = pdb_file.lines();
+
+        let line = pdb_iter.next().expect("empty PDB input");
+        if line.len() < 70 { panic!("invalid line"); }
+        if &line[..6] != "CRYST1" { panic!("first line of PDB must be CRYST1"); }
+        if &line[33..70] != "  90.00  90.00  90.00 P 1           1" {
+            panic!("CRYST1: angles must be 90 degrees, space group P 1, Z=1");
+        }
+
+        let box_dimensions = [
+            line[6..15].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
+            line[15..24].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
+            line[24..33].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
+        ];
+
+        let mut atoms = Vec::new();
+        for line in pdb_iter {
+            if line.len() >= 3 && &line[..3] == "END" { break; }
+            else if line.len() < 54 { panic!("invalid line"); }
+            atoms.push(match Atom::from_pdb(line) {
+                Ok(atom) => atom,
+                Err(err) => panic!("error reading PDB: {}", err),
+            });
+        }
+        (atoms, box_dimensions)
     }
 
     /// Read the trajectory if it exists (xtc and trr files supported).
@@ -171,15 +199,22 @@ impl Universe {
         }
     }
 
-    /// Write a range of gro files, from `mint` to `maxt` with stride `tstep`.
+    /// Write a range of GRO files, from `mint` to `maxt` with stride `tstep`.
+    /// If no trajectory file is supplied, write a single GRO file.
     fn write_gro_range(&mut self, mint:&u32, maxt: &u32, tstep: &u32, outfile_str: &str) -> Result<(), &'static str> {
-        let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
-            .filter(|x| x.time as u32 >= *mint && x.time as u32 <= *maxt && x.time as u32 % *tstep == 0);
+        match self.traj {
+            Some(_) => {
+                let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
+                    .filter(|x| x.time as u32 >= *mint && x.time as u32 <= *maxt && x.time as u32 % *tstep == 0);
 
-        for frame in traj_iter {
-            self.load_frame(&frame);
-            self.write_gro(&format!("{}_{}.gro", outfile_str, frame.time));
-        }
+                for frame in traj_iter {
+                    self.load_frame(&frame);
+                    self.write_gro(&format!("{}_{}.gro", outfile_str, frame.time));
+                }
+            }
+            None => self.write_gro(&format!("{}.gro", outfile_str)),
+        };
+        
         Ok(())
     }
 
