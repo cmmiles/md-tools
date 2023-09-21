@@ -34,8 +34,8 @@
 <a href="#34" id="34">34</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module to contain small utility functions.
 
-/// Justify atom name by PDB copnventions. Where possible, the element symbol (e.g. `H` (Hydrogen), `NA` (sodium)) should be
-/// right-aligned in the first two columns. Examples: ` OW `, ` HW1`, `NA  `.
+/// Justify atom name by PDB conventions. Where possible, the element symbol (e.g. `O`, `H`, `NA`) should be
+/// right-aligned in the first two columns. Examples: ` OW `, ` HW1`, `NA  `.
 </span><span class="kw">pub fn </span>justify_atom_name(atom_name: <span class="kw-2">&amp;</span>str) -&gt; String {
 
     <span class="comment">// Array of element symbols for justify_atom_name

@@ -1,7 +1,7 @@
 //! Module to contain small utility functions.
 
-/// Justify atom name by PDB copnventions. Where possible, the element symbol (e.g. `H` (Hydrogen), `NA` (sodium)) should be
-/// right-aligned in the first two columns. Examples: ` OW `, ` HW1`, `NA  `.
+/// Justify atom name by PDB conventions. Where possible, the element symbol (e.g. `O`, `H`, `NA`) should be
+/// right-aligned in the first two columns. Examples: ` OW `, ` HW1`, `NA  `.
 pub fn justify_atom_name(atom_name: &str) -> String {
 
     // Array of element symbols for justify_atom_name
