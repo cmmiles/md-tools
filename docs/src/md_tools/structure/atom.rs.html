@@ -129,6 +129,51 @@
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
 <a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
+<a href="#170" id="170">170</a>
+<a href="#171" id="171">171</a>
+<a href="#172" id="172">172</a>
+<a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
 </pre></div><pre class="rust"><code><span class="kw">use super</span>::<span class="kw-2">*</span>;
 
 <span class="doccomment">/// Contains data for a single atom.
@@ -179,7 +224,7 @@
         }
     }
 
-    <span class="doccomment">/// Create an Atom from a line of a gro file.
+    <span class="doccomment">/// Create an Atom from a line of a GRO file.
     </span><span class="kw">pub fn </span>from_gro(line: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt; {
         <span class="kw">if </span>line.len() &lt; <span class="number">44 </span>{ <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid line&quot;</span>) }
         <span class="kw">let </span>resid: u32 = <span class="kw">match </span><span class="kw-2">&amp;</span>line[<span class="number">0</span>..<span class="number">5</span>].trim().parse() {
@@ -212,12 +257,57 @@
         })
     }
 
-    <span class="doccomment">/// Write a line for the Atom in gro format.
+    <span class="doccomment">/// Create an Atom from a line of a PDB file.
+    </span><span class="kw">pub fn </span>from_pdb(line: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt; {
+
+        <span class="kw">if </span>line.len() &lt; <span class="number">54 </span>{ <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;PDB: invalid ATOM record&quot;</span>); }
+
+        <span class="kw">let </span>id: u32 = <span class="kw">match </span><span class="kw-2">&amp;</span>line[<span class="number">6</span>..<span class="number">11</span>].trim().parse() {
+            <span class="prelude-val">Ok</span>(val) =&gt; <span class="kw-2">*</span>val,
+            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid atom id&quot;</span>),
+        };
+        <span class="kw">let </span>resid: u32 = <span class="kw">match </span><span class="kw-2">&amp;</span>line[<span class="number">22</span>..<span class="number">26</span>].trim().parse() {
+            <span class="prelude-val">Ok</span>(val) =&gt; <span class="kw-2">*</span>val,
+            <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid residue id&quot;</span>),
+        };
+
+        <span class="comment">// Coordinates in md-tools are stored as nm, as with the GRO format, PDB files store coordinates in Ang
+        </span><span class="kw">let </span>coords: [f32; <span class="number">3</span>] = [
+            <span class="kw">match </span><span class="kw-2">&amp;</span>line[<span class="number">30</span>..<span class="number">38</span>].trim().parse::&lt;f32&gt;() {
+                <span class="prelude-val">Ok</span>(val) =&gt; <span class="kw-2">*</span>val / <span class="number">10.0</span>,
+                <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid x coordinate&quot;</span>),
+            },
+            <span class="kw">match </span><span class="kw-2">&amp;</span>line[<span class="number">38</span>..<span class="number">46</span>].trim().parse::&lt;f32&gt;() {
+                <span class="prelude-val">Ok</span>(val) =&gt; <span class="kw-2">*</span>val / <span class="number">10.0</span>,
+                <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid y coordinate&quot;</span>),
+            },
+            <span class="kw">match </span><span class="kw-2">&amp;</span>line[<span class="number">47</span>..<span class="number">54</span>].trim().parse::&lt;f32&gt;() {
+                <span class="prelude-val">Ok</span>(val) =&gt; <span class="kw-2">*</span>val / <span class="number">10.0</span>,
+                <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid z coordinate&quot;</span>),
+            },
+        ];
+
+        <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
+            id, resid, coords,
+            name: String::from(<span class="kw-2">*&amp;</span>line[<span class="number">12</span>..<span class="number">16</span>].trim()),
+            resname: String::from(<span class="kw-2">*&amp;</span>line[<span class="number">17</span>..<span class="number">21</span>].trim()),
+        })
+    }
+
+    <span class="doccomment">/// Write a line for the Atom in GRO format.
     </span><span class="kw">pub fn </span>to_gro(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
         <span class="kw">let </span>coords = <span class="self">self</span>.coords;
         <span class="macro">format!</span>(<span class="string">&quot;{:&gt;5}{:&lt;5.5}{:&gt;5.5}{:&gt;5}{:8.3}{:8.3}{:8.3}&quot;</span>,
             <span class="self">self</span>.resid % <span class="number">100_000</span>, <span class="self">self</span>.resname, <span class="self">self</span>.name, <span class="self">self</span>.id % <span class="number">100_000</span>,
             coords[<span class="number">0</span>], coords[<span class="number">1</span>], coords[<span class="number">2</span>])
+    }
+
+    <span class="doccomment">/// Write a line for the Atom in PDB format.
+    </span><span class="kw">pub fn </span>to_pdb(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="kw">let </span>coords = <span class="self">self</span>.coords;
+        <span class="macro">format!</span>(<span class="string">&quot;ATOM  {:&gt;5} {:&gt;4.4}{:&gt;4.4} X{:&gt;4}    {:&gt;8.3}{:&gt;8.3}{:&gt;8.3}  0.00  0.00              &quot;</span>,
+            <span class="self">self</span>.id % <span class="number">100_000</span>, justify_atom_name(<span class="kw-2">&amp;</span><span class="self">self</span>.name), <span class="self">self</span>.resname, <span class="self">self</span>.resid % <span class="number">10_000</span>,
+            coords[<span class="number">0</span>] * <span class="number">10.0</span>, coords[<span class="number">1</span>] * <span class="number">10.0</span>, coords[<span class="number">2</span>] * <span class="number">10.0</span>)
     }
 
     <span class="doccomment">/// Calculates the coordination shell of the Atom

@@ -60,22 +60,22 @@ impl Universe {
         let gro_file = fs::read_to_string(gro_file).unwrap();
         let mut gro_iter = gro_file.lines();
 
-        gro_iter.next().expect("empty gro input");
+        gro_iter.next().expect("empty GRO input");
 
-        let natoms: u32 = gro_iter.next().expect("invalid / missing atom count line in gro")
+        let natoms: u32 = gro_iter.next().expect("invalid / missing atom count line in GRO")
             .trim().parse().expect("invalid / missing atom count line in gro");
 
         let mut atoms = Vec::new();
         for i in 0..natoms {
             atoms.push(match Atom::from_gro(gro_iter.next().unwrap()) {
                 Ok(atom) => atom,
-                Err(err) => panic!("error in gro line {}: {}", i+3, err),
+                Err(err) => panic!("error in GRO line {}: {}", i+3, err),
             });
         }
 
-        let box_dimensions_str = gro_iter.next().expect("missing box dimensions in gro");
+        let box_dimensions_str = gro_iter.next().expect("missing box dimensions in GRO");
         let mut box_dimensions_iter = box_dimensions_str.split(" ").filter(|&s| s != "").map(|s| s.parse::<f32>()
-            .expect("invalid box dimensions in gro"));
+            .expect("invalid box dimensions in GRO"));
 
         let box_dimensions = [
             box_dimensions_iter.next().expect("invalid box dimensions in GRO"),
@@ -86,34 +86,37 @@ impl Universe {
         ( atoms, box_dimensions )
     }
 
-    /// Read a PDB file
-    pub fn from_pdb(pdb_file: &Path) -> (Vec<Atom>, [f32; 3]) {
+    /// Read a PDB file, ignores all lines that are not CRYST1, ATOM or END.
+    fn from_pdb(pdb_file: &Path) -> (Vec<Atom>, [f32; 3]) {
         let pdb_file = fs::read_to_string(pdb_file).unwrap();
-        let mut pdb_iter = pdb_file.lines();
-
-        let line = pdb_iter.next().expect("empty PDB input");
-        if line.len() < 70 { panic!("invalid line"); }
-        if &line[..6] != "CRYST1" { panic!("first line of PDB must be CRYST1"); }
-        if &line[33..70] != "  90.00  90.00  90.00 P 1           1" {
-            panic!("CRYST1: angles must be 90 degrees, space group P 1, Z=1");
-        }
-
-        let box_dimensions = [
-            line[6..15].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
-            line[15..24].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
-            line[24..33].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
-        ];
-
+        let pdb_iter = pdb_file.lines();
+        let mut box_dimensions = None;
         let mut atoms = Vec::new();
         for line in pdb_iter {
-            if line.len() >= 3 && &line[..3] == "END" { break; }
-            else if line.len() < 54 { panic!("invalid line"); }
-            atoms.push(match Atom::from_pdb(line) {
-                Ok(atom) => atom,
-                Err(err) => panic!("error reading PDB: {}", err),
-            });
+            if line.len() >= 3 && &line[..3] == "END" {
+                break;
+            } else if line.len() >= 6 && &line[..6] == "CRYST1" {
+                if let Some(_) = box_dimensions { panic!("multiple CRYST1 records found"); }
+                if line.len() < 70 { panic!("PDB: invalid CRYST1 record"); }
+                if &line[33..70] != "  90.00  90.00  90.00 P 1           1" {
+                    panic!("CRYST1: angles must be 90 degrees, space group P 1, Z=1");
+                }
+
+                box_dimensions = Some([
+                    line[6..15].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
+                    line[15..24].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
+                    line[24..33].replace(" ", "").parse::<f32>().expect("invalid box dimensions in PDB") / 10.0,
+                ]);
+            } else if line.len() >= 4 && &line[..4] == "ATOM" {
+                atoms.push(match Atom::from_pdb(line) {
+                    Ok(atom) => atom,
+                    Err(err) => panic!("error reading PDB: {}", err),
+                });
+            }
         }
-        (atoms, box_dimensions)
+        if atoms.len() == 0 { panic! ("empty PDB input"); }
+        if let None = box_dimensions { panic! ("PDB: missing CRYST1 record"); }
+        (atoms, box_dimensions.unwrap())
     }
 
     /// Read the trajectory if it exists (xtc and trr files supported).
@@ -154,17 +157,30 @@ impl Universe {
         }
     }
 
-    /// Write the current frame to a gro file.
+    /// Write the current frame to a GRO file.
     pub fn write_gro(&self, gro_file: &str) {
         let err_msg = &format!("error writing to file {}", gro_file);
         let mut f = fs::File::create(gro_file).expect(err_msg);
-        let box_dimensions = self.box_dimensions;
-        write!(f, "Structure outputted from md-tools\n").expect(err_msg);
-        write!(f, "{:>5}\n", &self.atoms.len()).expect(err_msg);
-        for atom in self.atoms.iter() {
-            write!(f, "{}\n", atom.to_gro()).expect(err_msg);
-        }
-        write!(f, "{:10.5}{:10.5}{:10.5}", box_dimensions[0], box_dimensions[1], box_dimensions[2]).expect(err_msg);
+        writeln!(f, "Structure outputted from md-tools").expect(err_msg);
+        writeln!(f, "{:>5}", &self.atoms.len()).expect(err_msg);
+        for atom in self.atoms.iter() { writeln!(f, "{}", atom.to_gro()).expect(err_msg); }
+        write!(f,
+            "{:10.5}{:10.5}{:10.5}",
+            self.box_dimensions[0], self.box_dimensions[1], self.box_dimensions[2]
+        ).expect(err_msg);
+    }
+
+    /// Write the current frame to a PDB file.
+    pub fn write_pdb(&self, pdb_file: &str) {
+        let err_msg = &format!("error writing to file {}", pdb_file);
+        let mut f = fs::File::create(pdb_file).expect(err_msg);
+        writeln!(f, "Structure outputted from md-tools").expect(err_msg);
+        writeln!(f,
+            "CRYST1{:>9.3}{:>9.3}{:>9.3}  90.00  90.00  90.00 P 1           1",
+            self.box_dimensions[0] * 10.0, self.box_dimensions[1] * 10.0, self.box_dimensions[2] * 10.0
+        ).expect(err_msg);
+        for atom in self.atoms.iter() { writeln!(f, "{}", atom.to_pdb()).expect(err_msg); }
+        write!(f, "END").expect(err_msg);
     }
 
     /// Return a vector of molecules, assumes molecules are grouped in order in the structure file.
@@ -190,7 +206,8 @@ impl Universe {
     pub fn convert(&mut self, mint: &u32, maxt: &u32, tstep: &u32, outfile: &Option<PathBuf>) -> Result<(), &'static str> {
         match outfile {
             Some(outfile) => match (&outfile).extension().expect("output file must have an extension").to_str().unwrap() {
-                "gro" => self.write_gro_range(mint, maxt, tstep, &outfile.with_extension("").to_str().unwrap()),
+                "gro" => self.convert_sfile(mint, maxt, tstep, &outfile.with_extension("").to_str().unwrap(), "gro"),
+                "pdb" => self.convert_sfile(mint, maxt, tstep, &outfile.with_extension("").to_str().unwrap(), "pdb"),
                 "xtc" => self.write_xtc(mint, maxt, tstep, &outfile.with_extension("").to_str().unwrap()),
                 "trr" => self.write_trr(mint, maxt, tstep, &outfile.with_extension("").to_str().unwrap()),
                 ext => panic!("I don't know how to write .{} files", ext),
@@ -201,7 +218,8 @@ impl Universe {
 
     /// Write a range of GRO files, from `mint` to `maxt` with stride `tstep`.
     /// If no trajectory file is supplied, write a single GRO file.
-    fn write_gro_range(&mut self, mint:&u32, maxt: &u32, tstep: &u32, outfile_str: &str) -> Result<(), &'static str> {
+    fn convert_sfile(&mut self, mint:&u32, maxt: &u32, tstep: &u32, outfile_str: &str, format: &str)
+    -> Result<(), &'static str> {
         match self.traj {
             Some(_) => {
                 let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
@@ -209,11 +227,21 @@ impl Universe {
 
                 for frame in traj_iter {
                     self.load_frame(&frame);
-                    self.write_gro(&format!("{}_{}.gro", outfile_str, frame.time));
+                    match format {
+                        "gro" => self.write_gro(&format!("{}_{}.gro", outfile_str, frame.time)),
+                        "pdb" => self.write_pdb(&format!("{}_{}.pdb", outfile_str, frame.time)),
+                        ext => panic!("I don't know how to write .{} files", ext),
+                    }
                 }
             }
-            None => self.write_gro(&format!("{}.gro", outfile_str)),
-        };
+            None => {
+                match  format {
+                    "gro" => self.write_gro(&format!("{}.gro", outfile_str)),
+                    "pdb" => self.write_pdb(&format!("{}.pdb", outfile_str)),
+                    ext => panic!("I don't know how to write .{} files", ext),
+                }
+            }
+        }
         
         Ok(())
     }

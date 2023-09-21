@@ -84,7 +84,7 @@ impl Atom {
     /// Create an Atom from a line of a PDB file.
     pub fn from_pdb(line: &str) -> Result<Self, &'static str> {
 
-        if &line[..4] != "ATOM" { return Err("record type should be ATOM"); }
+        if line.len() < 54 { return Err("PDB: invalid ATOM record"); }
 
         let id: u32 = match &line[6..11].trim().parse() {
             Ok(val) => *val,
@@ -124,6 +124,14 @@ impl Atom {
         format!("{:>5}{:<5.5}{:>5.5}{:>5}{:8.3}{:8.3}{:8.3}",
             self.resid % 100_000, self.resname, self.name, self.id % 100_000,
             coords[0], coords[1], coords[2])
+    }
+
+    /// Write a line for the Atom in PDB format.
+    pub fn to_pdb(&self) -> String {
+        let coords = self.coords;
+        format!("ATOM  {:>5} {:>4.4}{:>4.4} X{:>4}    {:>8.3}{:>8.3}{:>8.3}  0.00  0.00              ",
+            self.id % 100_000, justify_atom_name(&self.name), self.resname, self.resid % 10_000,
+            coords[0] * 10.0, coords[1] * 10.0, coords[2] * 10.0)
     }
 
     /// Calculates the coordination shell of the Atom

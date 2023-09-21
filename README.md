@@ -9,13 +9,13 @@ md-tools steinhardt --q6 -s md-gro -t traj.xtc -o md-tools.out -start 0 --end 10
 ```
 where `md-tools` is the executable. The first argument after `md-tools` is the analysis to be run, options:
 * `nframes` for outputting the total number of frames in the trajectory,[^note1]
-* `convert` for converting into .xtc .trr or a series of .gro files, this can be used to shorten the trajectory,
+* `convert` for converting into .xtc/.trr or a series of .gro/.pdb files, this can be used to shorten the trajectory,
 * `dipole` for calculating water dipole orientations with respect to the *z* axis,
 * `steinhardt` for calculating Steinhardt bond order parameters,
 * `cluster` for calculating the largest ice-like clusters in each frame (work in progress).
 
 ### Additional arguments
-* `-s` or `--sfile` \[\<.gro\>\] structure file,
+* `-s` or `--sfile` \[\<.gro/.pdb\>\] structure file,
 * `-t` or `--tfile` \[\<.xtc/.trr\>\] trajectory file,
 * `-o` or `--output` output file,[^note2]
 * `--start` \<int\> (0) analysis start time \[ps\],[^note3]
