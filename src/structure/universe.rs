@@ -3,7 +3,7 @@ use std::{
     path::{PathBuf, Path},
     io::Write,
     thread,
-    sync::{mpsc, Arc, Mutex},
+    sync::mpsc,
 };
 use xdrfile::*;
 use closure::closure;
@@ -300,56 +300,13 @@ impl Universe {
         }
     }
 
-    /// Calculate the water dipoles for the frames specified in the Config.
-    /// N.B. to be combined with `steinhardt()`.
-    pub fn water_dipole(
-        &mut self,
-        resname: &str,
-        ref_axis: Vector,
-        mint: &u32,
-        maxt: &u32,
-        tstep: &u32,
-        outfile: &Option<PathBuf>,
-    )
-        -> Result<(), &'static str>
-    {
-        let outfile = match outfile {
-            Some(outfile) => &outfile.to_str().unwrap(),
-            None => "outputs/md-tools.out.theta",
-        };
-        let err_msg = &format!("error creating file {}", outfile);
-        let opt_pbc = self.request_pbc();
-
-        let mut f = fs::File::create(outfile).expect(err_msg);
-        write!(f, "Water dipole orientations outputted from md-tools").expect(err_msg);
-        let f = Arc::new(Mutex::new(f));
-
-        let traj_iter = self.read_traj()?.filter_map(|x| x.ok())
-            .filter(|x| x.time as u32 >= *mint && x.time as u32 % *tstep == 0);
-        
-        for frame in traj_iter {
-            if frame.time as u32 > *maxt { break; }
-            self.load_frame(&frame);
-            // Full list of molecules being analysed -- there may be additional framewise filtering
-            let molecules: Vec<Molecule> = self.get_molecules().into_iter()
-                .filter(|mol| mol.name == resname && mol.atoms.len() > 2)
-                .collect();
-            let (frame_indices, frame_output) = analysis::water_dipole(&molecules, &ref_axis, &opt_pbc)?;
-            let f_clone = f.clone();
-            let time = self.time;
-            thread::spawn(move || output::water_dipole(frame_indices, frame_output, &time, f_clone));
-        }
-
-        Ok(())
-    }
-
-    /// Calculate Steinhardt order parameters for the frames specified in the Config.
-    /// N.B. to be combined with `water_dipole()`.
-    pub fn steinhardt(
+    /// Calculate order parameters for the frames specified in the Config.
+    pub fn order(
         &mut self, 
         resname: &str,
         op_list: &Vec<OrderParameter>,
         cutoff: &f64,
+        ref_axis: Vector,
         mint: &u32,
         maxt: &u32,
         tstep: &u32,
@@ -406,10 +363,10 @@ impl Universe {
 
                 for (op_index, time, frame_indices, frame_output) in rx {
                     if csv_flag {
-                        output::csv(frame_indices, frame_output, &csv_indices, &mut f_list[op_index])
+                        output::csv(&op_list[op_index], frame_indices, frame_output, &csv_indices, &mut f_list[op_index])
                             .expect("error writing to csv file");
                     } else {
-                        output::steinhardt(frame_indices, frame_output, time, &mut f_list[op_index])
+                        output::order(&op_list[op_index], frame_indices, frame_output, time, &mut f_list[op_index])
                             .expect("error writing to output file");
                     }
                 }
@@ -431,12 +388,12 @@ impl Universe {
                 thread::scope(|frame_scope| {
                     for (i, op) in op_list.iter().enumerate() {
                         let tx_clone = tx.clone();
-                        frame_scope.spawn(closure!(ref molecules, ref opt_pbc, || {
+                        frame_scope.spawn(closure!(ref molecules, ref opt_pbc, ref ref_axis, || {
                             let (frame_indices, frame_output) = match op {
                                 OrderParameter::Q3 => analysis::steinhardt(3, cutoff, &molecules, &opt_pbc, None),
                                 OrderParameter::Q4 => analysis::steinhardt(4, cutoff, &molecules, &opt_pbc, None),
                                 OrderParameter::Q6 => analysis::steinhardt(6, cutoff, &molecules, &opt_pbc, None),
-                                OrderParameter::Theta => panic!("Theta not yet incorporated"),
+                                OrderParameter::Theta => analysis::water_dipole(&molecules, &ref_axis, &opt_pbc),
                             };
                             tx_clone.send((i, time, frame_indices, frame_output)).expect("Error sending write data");
                         }));

@@ -148,6 +148,25 @@
 <a href="#148" id="148">148</a>
 <a href="#149" id="149">149</a>
 <a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
+<a href="#163" id="163">163</a>
+<a href="#164" id="164">164</a>
+<a href="#165" id="165">165</a>
+<a href="#166" id="166">166</a>
+<a href="#167" id="167">167</a>
+<a href="#168" id="168">168</a>
+<a href="#169" id="169">169</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module for parsing input arguments.
 
 </span><span class="kw">use </span>std::path::PathBuf;
@@ -186,8 +205,7 @@
             <span class="prelude-val">Some</span>(task) =&gt; <span class="kw">match </span><span class="kw-2">&amp;</span>task[..] {
                 <span class="string">&quot;nframes&quot; </span>=&gt; Task::NumFrames,
                 <span class="string">&quot;convert&quot; </span>=&gt; Task::Convert,
-                <span class="string">&quot;dipole&quot; </span>=&gt; Task::Dipole,
-                <span class="string">&quot;steinhardt&quot; </span>=&gt; Task::Steinhardt,
+                <span class="string">&quot;order&quot; </span>=&gt; Task::Order,
                 <span class="string">&quot;cluster&quot; </span>=&gt; Task::Cluster,
                 <span class="kw">_ </span>=&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(<span class="string">&quot;invalid task&quot;</span>),
             }
@@ -270,18 +288,28 @@
 <span class="doccomment">/// Type of analysis to be run.
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub enum </span>Task {
-    NumFrames,
-    Convert,
-    Dipole,
-    Steinhardt,
-    Cluster,
+    <span class="doccomment">/// Count the number of frames in the trajectory
+    </span>NumFrames,
+    <span class="doccomment">/// Convert the input files into XTC/TRR trajectories or GRO/PDB structure files
+    </span>Convert,
+    <span class="doccomment">/// Compute various order parameters
+    </span>Order,
+    <span class="doccomment">/// Calculate the largest ice-like clusters in each frame
+    </span>Cluster,
 }
 
 <span class="doccomment">/// Available order parameters.
 </span><span class="attr">#[derive(Debug)]
 #[derive(PartialEq)]
 </span><span class="kw">pub enum </span>OrderParameter {
-    Theta, Q3, Q4, Q6,
+    <span class="doccomment">/// 3rd order Steinhardt parameters
+    </span>Q3,
+    <span class="doccomment">/// 4th order Steinhardt parameters
+    </span>Q4,
+    <span class="doccomment">/// 6th order Steinhardt parameters
+    </span>Q6,
+    <span class="doccomment">/// Water dipole orientation (with respect to the *z* axis)
+    </span>Theta,
 }
 
 <span class="kw">impl </span>OrderParameter {
@@ -291,10 +319,20 @@
     /// ```
     </span><span class="kw">pub const fn </span>title_line(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str {
         <span class="kw">match </span><span class="self">self </span>{
-            OrderParameter::Theta =&gt; <span class="string">&quot;Water dipole orientations outputted from md-tools&quot;</span>,
             OrderParameter::Q3 =&gt; <span class="string">&quot;Steinhardt q3 bond order parameters outputted from md-tools&quot;</span>,
             OrderParameter::Q4 =&gt; <span class="string">&quot;Steinhardt q4 bond order parameters outputted from md-tools&quot;</span>,
             OrderParameter::Q6 =&gt; <span class="string">&quot;Steinhardt q6 bond order parameters outputted from md-tools&quot;</span>,
+            OrderParameter::Theta =&gt; <span class="string">&quot;Water dipole orientations outputted from md-tools&quot;</span>,
+        }
+    }
+
+    <span class="doccomment">/// Returns the magnitude of the order parameter (i.e. max number of digits before the decimal point).
+    </span><span class="kw">pub const fn </span>magnitude(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; usize {
+        <span class="kw">match </span><span class="self">self </span>{
+            OrderParameter::Q3 =&gt; <span class="number">1</span>,
+            OrderParameter::Q4 =&gt; <span class="number">1</span>,
+            OrderParameter::Q6 =&gt; <span class="number">1</span>,
+            OrderParameter::Theta =&gt; <span class="number">3</span>,
         }
     }
 }</code></pre></div></section></main></body></html>

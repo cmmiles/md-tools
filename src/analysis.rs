@@ -6,9 +6,9 @@ use std::f64::consts::PI;
 
 mod steinhardt;
 
-/// Calculates the water dipoles for a given universe at its current Frame.
+/// Calculates the orientations of water dipoles for a given universe at its current Frame.
 pub fn water_dipole(molecules: &Vec<Molecule>, ref_axis: &Vector, opt_pbc: &Option<[f32;3]>)
-    -> Result<(Vec<u32>, Vec<f64>), &'static str>
+    -> (Vec<u32>, Vec<f64>)
 {
     let n = molecules.len();
     let mut frame_indices: Vec<u32> = Vec::with_capacity(n);
@@ -21,7 +21,7 @@ pub fn water_dipole(molecules: &Vec<Molecule>, ref_axis: &Vector, opt_pbc: &Opti
         frame_indices.push(molecule.id);
         frame_output.push(theta);
     }
-    Ok((frame_indices, frame_output))
+    (frame_indices, frame_output)
 }
 
 /// Calculates the [Steinhardt bond order parameters](https://doi.org/10.1103/PhysRevB.28.784)[^cite]
@@ -29,8 +29,9 @@ pub fn water_dipole(molecules: &Vec<Molecule>, ref_axis: &Vector, opt_pbc: &Opti
 ///
 /// [^cite]: [P. J. Steinhardt, D. R. Nelson and M. Ronchetti, *Phys. Rev. B*, 1983, **28**, 784--805](https://doi.org/10.1103/PhysRevB.28.784).
 pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
--> (Vec<u32>, Vec<f64>) {
-    let (min_coord_number, max_coord_number) = (4, 4);
+    -> (Vec<u32>, Vec<f64>)
+{
+    let (min_coord_number, max_coord_number) = (2, 8);
     let frame_indices = filter_indices(molecules, opt_ndx).iter().map(|mol| mol.id).collect();
     let frame_output = steinhardt::qlm(&l, cutoff, molecules, opt_pbc, opt_ndx, min_coord_number, max_coord_number)
         .into_iter().map(|qlm| qlm.iter().map(|x| x.norm_sqr()).sum::<f64>())
@@ -44,7 +45,8 @@ pub fn steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Opti
 ///
 /// [^cite]: [W. Lechner and C. Dellago, *J. Chem. Phys.*, 2008, **129**, 114707.](https://doi.org/10.1063/1.2977970)
 pub fn local_steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
--> (Vec<u32>, Vec<f64>) {
+    -> (Vec<u32>, Vec<f64>)
+{
     let (min_coord_number, max_coord_number) = (4, 4);
     let frame_indices = filter_indices(molecules, opt_ndx).iter().map(|mol| mol.id).collect();
     let frame_output = steinhardt::local_qlm(&l, cutoff, molecules, opt_pbc, opt_ndx, min_coord_number, max_coord_number)
@@ -59,7 +61,8 @@ pub fn local_steinhardt(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc:
 ///
 /// [^cite]: [T. Li, D. Donadio, G. Russo and G. Galli, *Phys. Chem. Chem. Phys.*, 2011, **13**, 19807--19813.](https://doi.org/10.1063/1.2977970)
 pub fn local_steinhardt_2(l: i8, cutoff: &f64, molecules: &Vec<Molecule>, opt_pbc: &Option<[f32;3]>, opt_ndx: Option<&Vec<usize>>)
--> (Vec<u32>, Vec<f64>) {
+    -> (Vec<u32>, Vec<f64>)
+{
     let (min_coord_number, max_coord_number) = (4, 4);
     let filtered_molecules = filter_indices(molecules, opt_ndx);
     let frame_indices = filtered_molecules.iter().map(|mol| mol.id).collect();

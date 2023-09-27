@@ -4,13 +4,12 @@
 //! ## How to run:
 //! [`md-tools`](crate) can be run from the command line as follows:
 //! ```text
-//! md-tools steinhardt --q6 -s md-gro -t traj.xtc -o md-tools.out -start 0 --end 1000
+//! md-tools order --q6 -s md-gro -t traj.xtc -o md-tools.out -start 0 --end 1000
 //! ```
 //! where `md-tools` is the executable. The first argument after `md-tools` is the analysis to be run, options:
 //! * `nframes` for outputting the total number of frames in the trajectory,[^note1]
 //! * `convert` for converting into .xtc/.trr or a series of .gro/.pdb files, this can be used to shorten the trajectory,
-//! * `dipole` for calculating water dipole orientations with respect to the *z* axis,
-//! * `steinhardt` for calculating Steinhardt bond order parameters,
+//! * `order` for calculating various order parameters,
 //! * `cluster` for calculating the largest ice-like clusters in each frame (work in progress).
 //!
 //! ### Additional arguments
@@ -21,14 +20,13 @@
 //! * `--end` \<int\> (+∞) analysis end time \[ps\],[^note3]
 //! * `--stride` \<int\> (1) analysis time step \[ps\],[^note3] should be a multiple of the trajectory time step,
 //! * `--no-pbc` disable periodic boundary conditions for analysis.
-//! ### Arguments for `md-tools steinhardt`
-//! * `--q3` enable 3rd order Steinhardt analysis (for use with `md-tools steinhardt`),
-//! * `--q4` enable 4th order Steinhardt analysis (for use with `md-tools steinhardt`),
-//! * `--q6` enable 6th order Steinhardt analysis (for use with `md-tools steinhardt`).
+//! ### Arguments for `md-tools order`
+//! * `--q3` enable 3rd order Steinhardt analysis (for use with `md-tools order`),
+//! * `--q4` enable 4th order Steinhardt analysis (for use with `md-tools order`),
+//! * `--q6` enable 6th order Steinhardt analysis (for use with `md-tools order`).
+//! * `--th` enable water dipole orientation analysis (for use with `md-tools order`).
 //! ### Arguments for `md-tools cluster`
 //! * `--n_cls` \<int\> (1) number of clusters to output for `md-tools cluster`.
-//! ### Unused arguments
-//! * `--th` enable water dipole analysis (for future use, currently does nothing).
 //!
 //! [^note1]: `md-tools nframes` only accepts the arguments `-s`/`--sfile` and `-t`/`--tfile`.
 //!
@@ -69,8 +67,7 @@ pub fn run(config: config::Config) -> Result<(), &'static str> {
     match config.task {
         Task::NumFrames => Ok(println!("{}", u.get_nframes()?)),
         Task::Convert => u.convert(&config.mint, &config.maxt, &config.stride, &config.outfile),
-        Task::Dipole => u.water_dipole("SOL", Vector::ez(), &config.mint, &config.maxt, &config.stride, &config.outfile),
-        Task::Steinhardt => u.steinhardt("SOL", &config.op_list, &0.32, &config.mint, &config.maxt, &config.stride, &config.outfile),
+        Task::Order => u.order("SOL", &config.op_list, &0.32, Vector::ez(), &config.mint, &config.maxt, &config.stride, &config.outfile),
         Task::Cluster => u.q6_clustering("SOL", &0.32, &config.mint, &config.maxt, &config.stride, &config.n_cls, &config.outfile),
     }
 }

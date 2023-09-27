@@ -151,6 +151,9 @@
 <a href="#151" id="151">151</a>
 <a href="#152" id="152">152</a>
 <a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module for analysis functions.
 
 </span><span class="kw">use </span><span class="kw">crate</span>::structure::<span class="kw-2">*</span>;
@@ -159,9 +162,9 @@
 
 <span class="kw">mod </span>steinhardt;
 
-<span class="doccomment">/// Calculates the water dipoles for a given universe at its current Frame.
+<span class="doccomment">/// Calculates the orientations of water dipoles for a given universe at its current Frame.
 </span><span class="kw">pub fn </span>water_dipole(molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, ref_axis: <span class="kw-2">&amp;</span>Vector, opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;)
-    -&gt; <span class="prelude-ty">Result</span>&lt;(Vec&lt;u32&gt;, Vec&lt;f64&gt;), <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt;
+    -&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;)
 {
     <span class="kw">let </span>n = molecules.len();
     <span class="kw">let </span><span class="kw-2">mut </span>frame_indices: Vec&lt;u32&gt; = Vec::with_capacity(n);
@@ -174,7 +177,7 @@
         frame_indices.push(molecule.id);
         frame_output.push(theta);
     }
-    <span class="prelude-val">Ok</span>((frame_indices, frame_output))
+    (frame_indices, frame_output)
 }
 
 <span class="doccomment">/// Calculates the [Steinhardt bond order parameters](https://doi.org/10.1103/PhysRevB.28.784)[^cite]
@@ -182,8 +185,9 @@
 ///
 /// [^cite]: [P. J. Steinhardt, D. R. Nelson and M. Ronchetti, *Phys. Rev. B*, 1983, **28**, 784--805](https://doi.org/10.1103/PhysRevB.28.784).
 </span><span class="kw">pub fn </span>steinhardt(l: i8, cutoff: <span class="kw-2">&amp;</span>f64, molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;, opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;)
--&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;) {
-    <span class="kw">let </span>(min_coord_number, max_coord_number) = (<span class="number">4</span>, <span class="number">4</span>);
+    -&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;)
+{
+    <span class="kw">let </span>(min_coord_number, max_coord_number) = (<span class="number">2</span>, <span class="number">8</span>);
     <span class="kw">let </span>frame_indices = filter_indices(molecules, opt_ndx).iter().map(|mol| mol.id).collect();
     <span class="kw">let </span>frame_output = steinhardt::qlm(<span class="kw-2">&amp;</span>l, cutoff, molecules, opt_pbc, opt_ndx, min_coord_number, max_coord_number)
         .into_iter().map(|qlm| qlm.iter().map(|x| x.norm_sqr()).sum::&lt;f64&gt;())
@@ -197,7 +201,8 @@
 ///
 /// [^cite]: [W. Lechner and C. Dellago, *J. Chem. Phys.*, 2008, **129**, 114707.](https://doi.org/10.1063/1.2977970)
 </span><span class="kw">pub fn </span>local_steinhardt(l: i8, cutoff: <span class="kw-2">&amp;</span>f64, molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;, opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;)
--&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;) {
+    -&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;)
+{
     <span class="kw">let </span>(min_coord_number, max_coord_number) = (<span class="number">4</span>, <span class="number">4</span>);
     <span class="kw">let </span>frame_indices = filter_indices(molecules, opt_ndx).iter().map(|mol| mol.id).collect();
     <span class="kw">let </span>frame_output = steinhardt::local_qlm(<span class="kw-2">&amp;</span>l, cutoff, molecules, opt_pbc, opt_ndx, min_coord_number, max_coord_number)
@@ -212,7 +217,8 @@
 ///
 /// [^cite]: [T. Li, D. Donadio, G. Russo and G. Galli, *Phys. Chem. Chem. Phys.*, 2011, **13**, 19807--19813.](https://doi.org/10.1063/1.2977970)
 </span><span class="kw">pub fn </span>local_steinhardt_2(l: i8, cutoff: <span class="kw-2">&amp;</span>f64, molecules: <span class="kw-2">&amp;</span>Vec&lt;Molecule&gt;, opt_pbc: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;[f32;<span class="number">3</span>]&gt;, opt_ndx: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Vec&lt;usize&gt;&gt;)
--&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;) {
+    -&gt; (Vec&lt;u32&gt;, Vec&lt;f64&gt;)
+{
     <span class="kw">let </span>(min_coord_number, max_coord_number) = (<span class="number">4</span>, <span class="number">4</span>);
     <span class="kw">let </span>filtered_molecules = filter_indices(molecules, opt_ndx);
     <span class="kw">let </span>frame_indices = filtered_molecules.iter().map(|mol| mol.id).collect();

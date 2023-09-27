@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["csv","q6_clustering","steinhardt","water_dipole"]};
+window.SIDEBAR_ITEMS = {"fn":["csv","order","q6_clustering"]};

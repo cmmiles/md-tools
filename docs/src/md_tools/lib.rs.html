@@ -71,22 +71,18 @@
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
-<a href="#74" id="74">74</a>
-<a href="#75" id="75">75</a>
-<a href="#76" id="76">76</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! # [`md-tools`](crate)
 //! A collection of analysis tools for molecular simulations in .xtc and .trr file formats.
 //! 
 //! ## How to run:
 //! [`md-tools`](crate) can be run from the command line as follows:
 //! ```text
-//! md-tools steinhardt --q6 -s md-gro -t traj.xtc -o md-tools.out -start 0 --end 1000
+//! md-tools order --q6 -s md-gro -t traj.xtc -o md-tools.out -start 0 --end 1000
 //! ```
 //! where `md-tools` is the executable. The first argument after `md-tools` is the analysis to be run, options:
 //! * `nframes` for outputting the total number of frames in the trajectory,[^note1]
 //! * `convert` for converting into .xtc/.trr or a series of .gro/.pdb files, this can be used to shorten the trajectory,
-//! * `dipole` for calculating water dipole orientations with respect to the *z* axis,
-//! * `steinhardt` for calculating Steinhardt bond order parameters,
+//! * `order` for calculating various order parameters,
 //! * `cluster` for calculating the largest ice-like clusters in each frame (work in progress).
 //!
 //! ### Additional arguments
@@ -97,14 +93,13 @@
 //! * `--end` \&lt;int\&gt; (+∞) analysis end time \[ps\],[^note3]
 //! * `--stride` \&lt;int\&gt; (1) analysis time step \[ps\],[^note3] should be a multiple of the trajectory time step,
 //! * `--no-pbc` disable periodic boundary conditions for analysis.
-//! ### Arguments for `md-tools steinhardt`
-//! * `--q3` enable 3rd order Steinhardt analysis (for use with `md-tools steinhardt`),
-//! * `--q4` enable 4th order Steinhardt analysis (for use with `md-tools steinhardt`),
-//! * `--q6` enable 6th order Steinhardt analysis (for use with `md-tools steinhardt`).
+//! ### Arguments for `md-tools order`
+//! * `--q3` enable 3rd order Steinhardt analysis (for use with `md-tools order`),
+//! * `--q4` enable 4th order Steinhardt analysis (for use with `md-tools order`),
+//! * `--q6` enable 6th order Steinhardt analysis (for use with `md-tools order`).
+//! * `--th` enable water dipole orientation analysis (for use with `md-tools order`).
 //! ### Arguments for `md-tools cluster`
 //! * `--n_cls` \&lt;int\&gt; (1) number of clusters to output for `md-tools cluster`.
-//! ### Unused arguments
-//! * `--th` enable water dipole analysis (for future use, currently does nothing).
 //!
 //! [^note1]: `md-tools nframes` only accepts the arguments `-s`/`--sfile` and `-t`/`--tfile`.
 //!
@@ -145,8 +140,7 @@
     </span><span class="kw">match </span>config.task {
         Task::NumFrames =&gt; <span class="prelude-val">Ok</span>(<span class="macro">println!</span>(<span class="string">&quot;{}&quot;</span>, u.get_nframes()<span class="question-mark">?</span>)),
         Task::Convert =&gt; u.convert(<span class="kw-2">&amp;</span>config.mint, <span class="kw-2">&amp;</span>config.maxt, <span class="kw-2">&amp;</span>config.stride, <span class="kw-2">&amp;</span>config.outfile),
-        Task::Dipole =&gt; u.water_dipole(<span class="string">&quot;SOL&quot;</span>, Vector::ez(), <span class="kw-2">&amp;</span>config.mint, <span class="kw-2">&amp;</span>config.maxt, <span class="kw-2">&amp;</span>config.stride, <span class="kw-2">&amp;</span>config.outfile),
-        Task::Steinhardt =&gt; u.steinhardt(<span class="string">&quot;SOL&quot;</span>, <span class="kw-2">&amp;</span>config.op_list, <span class="kw-2">&amp;</span><span class="number">0.32</span>, <span class="kw-2">&amp;</span>config.mint, <span class="kw-2">&amp;</span>config.maxt, <span class="kw-2">&amp;</span>config.stride, <span class="kw-2">&amp;</span>config.outfile),
+        Task::Order =&gt; u.order(<span class="string">&quot;SOL&quot;</span>, <span class="kw-2">&amp;</span>config.op_list, <span class="kw-2">&amp;</span><span class="number">0.32</span>, Vector::ez(), <span class="kw-2">&amp;</span>config.mint, <span class="kw-2">&amp;</span>config.maxt, <span class="kw-2">&amp;</span>config.stride, <span class="kw-2">&amp;</span>config.outfile),
         Task::Cluster =&gt; u.q6_clustering(<span class="string">&quot;SOL&quot;</span>, <span class="kw-2">&amp;</span><span class="number">0.32</span>, <span class="kw-2">&amp;</span>config.mint, <span class="kw-2">&amp;</span>config.maxt, <span class="kw-2">&amp;</span>config.stride, <span class="kw-2">&amp;</span>config.n_cls, <span class="kw-2">&amp;</span>config.outfile),
     }
 }</code></pre></div></section></main></body></html>

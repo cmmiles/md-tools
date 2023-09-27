@@ -36,8 +36,7 @@ impl Config {
             Some(task) => match &task[..] {
                 "nframes" => Task::NumFrames,
                 "convert" => Task::Convert,
-                "dipole" => Task::Dipole,
-                "steinhardt" => Task::Steinhardt,
+                "order" => Task::Order,
                 "cluster" => Task::Cluster,
                 _ => return Err("invalid task"),
             }
@@ -120,10 +119,13 @@ impl Config {
 /// Type of analysis to be run.
 #[derive(Debug)]
 pub enum Task {
+    /// Count the number of frames in the trajectory
     NumFrames,
+    /// Convert the input files into XTC/TRR trajectories or GRO/PDB structure files
     Convert,
-    Dipole,
-    Steinhardt,
+    /// Compute various order parameters
+    Order,
+    /// Calculate the largest ice-like clusters in each frame
     Cluster,
 }
 
@@ -131,7 +133,14 @@ pub enum Task {
 #[derive(Debug)]
 #[derive(PartialEq)]
 pub enum OrderParameter {
-    Theta, Q3, Q4, Q6,
+    /// 3rd order Steinhardt parameters
+    Q3,
+    /// 4th order Steinhardt parameters
+    Q4,
+    /// 6th order Steinhardt parameters
+    Q6,
+    /// Water dipole orientation (with respect to the *z* axis)
+    Theta,
 }
 
 impl OrderParameter {
@@ -141,10 +150,20 @@ impl OrderParameter {
     /// ```
     pub const fn title_line(&self) -> &'static str {
         match self {
-            OrderParameter::Theta => "Water dipole orientations outputted from md-tools",
             OrderParameter::Q3 => "Steinhardt q3 bond order parameters outputted from md-tools",
             OrderParameter::Q4 => "Steinhardt q4 bond order parameters outputted from md-tools",
             OrderParameter::Q6 => "Steinhardt q6 bond order parameters outputted from md-tools",
+            OrderParameter::Theta => "Water dipole orientations outputted from md-tools",
+        }
+    }
+
+    /// Returns the magnitude of the order parameter (i.e. max number of digits before the decimal point).
+    pub const fn magnitude(&self) -> usize {
+        match self {
+            OrderParameter::Q3 => 1,
+            OrderParameter::Q4 => 1,
+            OrderParameter::Q6 => 1,
+            OrderParameter::Theta => 3,
         }
     }
 }

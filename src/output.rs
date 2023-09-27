@@ -3,13 +3,13 @@
 use std::{
     fs,
     io::Write,
-    sync::{Arc, Mutex},
 };
 
 use ordinal::Ordinal;
+use crate::config::OrderParameter;
 
 /// Writes output to CSV file.
-pub fn csv(frame_indices: Vec<u32>, frame_output: Vec<f64>, csv_indices: &Vec<u32>, f: &mut fs::File)
+pub fn csv(op: &OrderParameter, frame_indices: Vec<u32>, frame_output: Vec<f64>, csv_indices: &Vec<u32>, f: &mut fs::File)
     -> Result<(), &'static str>
 {
     // Each line contains max 9n characters, all ASCII:
@@ -20,7 +20,7 @@ pub fn csv(frame_indices: Vec<u32>, frame_output: Vec<f64>, csv_indices: &Vec<u3
     // i is current frame_indices index
     let mut i = if csv_indices[0] == frame_indices[0] {
         if frame_output[0].is_nan() { csv_line +="\n"; }
-        else { csv_line += &format!("\n{:8.6}", frame_output[0]); }
+        else { csv_line += &format!("\n{0:.1$}", frame_output[0], 7 - op.magnitude()); }
         1
     } else {
         csv_line += "\n";
@@ -29,7 +29,7 @@ pub fn csv(frame_indices: Vec<u32>, frame_output: Vec<f64>, csv_indices: &Vec<u3
     for mol_id in csv_indices[1..].iter() {
         if *mol_id == frame_indices[i] {
             if frame_output[i].is_nan() { csv_line += ","; }
-            else { csv_line += &format!(",{:8.6}", frame_output[i]); }
+            else { csv_line += &format!(",{0:.1$}", frame_output[i], 7 - op.magnitude()); }
             i += 1
         } else {
             csv_line += ",";
@@ -42,35 +42,19 @@ pub fn csv(frame_indices: Vec<u32>, frame_output: Vec<f64>, csv_indices: &Vec<u3
     }
 }
 
-/// Writes water dipole output to file. N.B. to be combined with `steinhardt()`.
-pub fn water_dipole(frame_indices: Vec<u32>, frame_output: Vec<f64>, time: &f32, f: Arc<Mutex<fs::File>>)
-    -> Result<(), &'static str>
-{
-    let mut frame_string = String::with_capacity(26 + 22*frame_indices.len());
-    frame_string += &format!("\nt={:<10}", time);
-    for id in frame_indices.iter() { frame_string += &format!(" {id:>10}"); };
-    frame_string += &format!("\n            ");
-    for theta in frame_output.iter() { frame_string += &format!(" {theta:10.4}"); };
-
-    match write!(f.lock().unwrap(), "{frame_string}") {
-        Ok(_) => Ok(()),
-        Err(_) => return Err("error writing to dipole output file"),
-    }
-}
-
-/// Writes Steinhardt parameter output to file. N.B. to be combined with `water_dipole()`.
-pub fn steinhardt(frame_indices: Vec<u32>, frame_output: Vec<f64>, time: f32, f: &mut fs::File)
+/// Writes order parameter output to file.
+pub fn order(op: &OrderParameter, frame_indices: Vec<u32>, frame_output: Vec<f64>, time: f32, f: &mut fs::File)
     -> Result<(), &'static str>
 {
     let mut frame_string = String::with_capacity(26 + 18*frame_indices.len());
     frame_string += &format!("\nt={:<10}", time);
     for id in frame_indices.iter() { frame_string += &format!(" {id:>8}"); };
     frame_string += &format!("\n            ");
-    for theta in frame_output.iter() { frame_string += &format!(" {theta:8.6}"); };
+    for theta in frame_output.iter() { frame_string += &format!(" {theta:8.*}", 7 - op.magnitude()); };
 
     match write!(f, "{frame_string}") {
         Ok(_) => Ok(()),
-        Err(_) => return Err("error writing to Steinhardt output file"),
+        Err(_) => return Err("error writing to order parameter output file"),
     }
 }
 
