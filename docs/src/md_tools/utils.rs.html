@@ -32,13 +32,27 @@
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
 <a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
+<a href="#37" id="37">37</a>
+<a href="#38" id="38">38</a>
+<a href="#39" id="39">39</a>
+<a href="#40" id="40">40</a>
+<a href="#41" id="41">41</a>
+<a href="#42" id="42">42</a>
+<a href="#43" id="43">43</a>
+<a href="#44" id="44">44</a>
+<a href="#45" id="45">45</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module to contain small utility functions.
 
 /// Justify atom name by PDB conventions. Where possible, the element symbol (e.g. `O`, `H`, `NA`) should be
 /// right-aligned in the first two columns. Examples: ` OW `, ` HW1`, `NA  `.
 </span><span class="kw">pub fn </span>justify_atom_name(atom_name: <span class="kw-2">&amp;</span>str) -&gt; String {
 
-    <span class="comment">// Array of element symbols for justify_atom_name
+    <span class="comment">// Array of two character element symbols for justify_atom_name
+    // If the first two characters of the atom name don&#39;t match any of these then the first character should be the
+    // element symbol, and should be justified in the second position (unless atom name is &gt;= 4 chars).
+    // Exception: if first character is numeral, it should be justified in the first position.
     </span><span class="kw">const </span>ELEMENT_SYMBOLS: [<span class="kw-2">&amp;</span>str; <span class="number">104</span>] = [
         <span class="string">&quot;HE&quot;</span>, <span class="string">&quot;LI&quot;</span>, <span class="string">&quot;BE&quot;</span>, <span class="string">&quot;NE&quot;</span>, <span class="string">&quot;NA&quot;</span>, <span class="string">&quot;MG&quot;</span>, <span class="string">&quot;AL&quot;</span>, <span class="string">&quot;SI&quot;</span>, <span class="string">&quot;CL&quot;</span>, <span class="string">&quot;AR&quot;</span>, <span class="string">&quot;CA&quot;</span>, <span class="string">&quot;SC&quot;</span>, <span class="string">&quot;TI&quot;</span>, <span class="string">&quot;CR&quot;</span>, <span class="string">&quot;MN&quot;</span>, <span class="string">&quot;FE&quot;</span>, <span class="string">&quot;CO&quot;</span>, <span class="string">&quot;NI&quot;</span>,
         <span class="string">&quot;CU&quot;</span>, <span class="string">&quot;ZN&quot;</span>, <span class="string">&quot;GA&quot;</span>, <span class="string">&quot;GE&quot;</span>, <span class="string">&quot;AS&quot;</span>, <span class="string">&quot;SE&quot;</span>, <span class="string">&quot;BR&quot;</span>, <span class="string">&quot;KR&quot;</span>, <span class="string">&quot;RB&quot;</span>, <span class="string">&quot;SR&quot;</span>, <span class="string">&quot;ZR&quot;</span>, <span class="string">&quot;NB&quot;</span>, <span class="string">&quot;MO&quot;</span>, <span class="string">&quot;TC&quot;</span>, <span class="string">&quot;RU&quot;</span>, <span class="string">&quot;RH&quot;</span>, <span class="string">&quot;PD&quot;</span>, <span class="string">&quot;AG&quot;</span>,
@@ -48,21 +62,29 @@
         <span class="string">&quot;AC&quot;</span>, <span class="string">&quot;TH&quot;</span>, <span class="string">&quot;PA&quot;</span>, <span class="string">&quot;NP&quot;</span>, <span class="string">&quot;PU&quot;</span>, <span class="string">&quot;AM&quot;</span>, <span class="string">&quot;CM&quot;</span>, <span class="string">&quot;BK&quot;</span>, <span class="string">&quot;CF&quot;</span>, <span class="string">&quot;ES&quot;</span>, <span class="string">&quot;FM&quot;</span>, <span class="string">&quot;MD&quot;</span>, <span class="string">&quot;NO&quot;</span>, <span class="string">&quot;LR&quot;
     </span>];
 
+    <span class="comment">// Array of numerals for justify_atom_name
+    </span><span class="kw">const </span>NUMERALS: [<span class="kw-2">&amp;</span>str; <span class="number">10</span>] = [<span class="string">&quot;0&quot;</span>, <span class="string">&quot;1&quot;</span>, <span class="string">&quot;2&quot;</span>, <span class="string">&quot;3&quot;</span>, <span class="string">&quot;4&quot;</span>, <span class="string">&quot;5&quot;</span>, <span class="string">&quot;6&quot;</span>, <span class="string">&quot;7&quot;</span>, <span class="string">&quot;8&quot;</span>, <span class="string">&quot;9&quot;</span>];
+
     <span class="kw">match </span>atom_name.len() {
         <span class="number">1 </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot; {}  &quot;</span>, atom_name),
         <span class="number">2 </span>=&gt; {
             <span class="kw">match </span>ELEMENT_SYMBOLS.contains(<span class="kw-2">&amp;</span>atom_name) {
                 <span class="bool-val">true </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot;{}  &quot;</span>, atom_name),
-                <span class="bool-val">false </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot; {} &quot;</span>, atom_name),
+                <span class="bool-val">false </span>=&gt; <span class="kw">match </span>NUMERALS.contains(&amp;&amp;atom_name[..<span class="number">1</span>]) {
+                    <span class="bool-val">true </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot;{}  &quot;</span>, atom_name),
+                    <span class="bool-val">false </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot; {} &quot;</span>, atom_name),
+                }
             }
         }
         <span class="number">3 </span>=&gt; {
             <span class="kw">match </span>ELEMENT_SYMBOLS.contains(&amp;&amp;atom_name[..<span class="number">2</span>]) {
                 <span class="bool-val">true </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot;{} &quot;</span>, atom_name),
-                <span class="bool-val">false </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot; {}&quot;</span>, atom_name),
+                <span class="bool-val">false </span>=&gt; <span class="kw">match </span>NUMERALS.contains(&amp;&amp;atom_name[..<span class="number">1</span>]) {
+                    <span class="bool-val">true </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot;{} &quot;</span>, atom_name),
+                    <span class="bool-val">false </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot; {}&quot;</span>, atom_name),
+                },
             }
         }
-        <span class="number">4 </span>=&gt; String::from(atom_name),
         <span class="kw">_ </span>=&gt; <span class="macro">format!</span>(<span class="string">&quot;{:&gt;4.4}&quot;</span>, atom_name),
     }
 }</code></pre></div></section></main></body></html>

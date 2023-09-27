@@ -31,6 +31,7 @@ pub fn dot_product(u: &Vector, v: &Vector) -> f64 {
 
 /// Computes the spherical harmonic Y_l^m for a given [`Vector`](crate::math::Vector).
 /// Only 3rd, 4th and 6th order implemented at present.
+/// Spherical harmonic equations are hard coded as this is much more efficient than dynamically computing them.
 pub fn spherical_harmonic(l: &i8, m: &i8, r: &mut Vector) -> Result<Complex<f64>, &'static str> {
     let theta = r.theta();
     let phi = r.phi();

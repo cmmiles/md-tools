@@ -71,6 +71,7 @@
 <a href="#71" id="71">71</a>
 <a href="#72" id="72">72</a>
 <a href="#73" id="73">73</a>
+<a href="#74" id="74">74</a>
 </pre></div><pre class="rust"><code><span class="doccomment">//! Module to contain mathematical functions and structures.
 
 </span><span class="kw">use </span>std::{
@@ -104,6 +105,7 @@
 
 <span class="doccomment">/// Computes the spherical harmonic Y_l^m for a given [`Vector`](crate::math::Vector).
 /// Only 3rd, 4th and 6th order implemented at present.
+/// Spherical harmonic equations are hard coded as this is much more efficient than dynamically computing them.
 </span><span class="kw">pub fn </span>spherical_harmonic(l: <span class="kw-2">&amp;</span>i8, m: <span class="kw-2">&amp;</span>i8, r: <span class="kw-2">&amp;mut </span>Vector) -&gt; <span class="prelude-ty">Result</span>&lt;Complex&lt;f64&gt;, <span class="kw-2">&amp;</span><span class="lifetime">&#39;static </span>str&gt; {
     <span class="kw">let </span>theta = r.theta();
     <span class="kw">let </span>phi = r.phi();
